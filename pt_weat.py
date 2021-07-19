@@ -14,9 +14,9 @@ def association(w, attribute_a: torch.tensor, attribute_b: torch.tensor) -> floa
     """Association of a word with an attribute. Torch version.
     """
     _w = w.unsqueeze(0)
-    ass_a = nn.CosineSimilarity(dim=1)(_w, attribute_a)
-    ass_b = nn.CosineSimilarity(dim=1)(_w, attribute_b)
-    return ass_a.mean() - ass_b.mean()
+    assoc_a = nn.CosineSimilarity(dim=1)(_w, attribute_a)
+    assoc_b = nn.CosineSimilarity(dim=1)(_w, attribute_b)
+    return assoc_a.mean() - assoc_b.mean()
 
 def weat(target_x, target_y, attribute_a, attribute_b) -> float:
     """
@@ -34,12 +34,11 @@ def weat_effect_size(
 
     target_xy = torch.vstack((target_x, target_y))
 
-    # TODO(przem): get rid of that list comprehension
-    mean_x = torch.mean(torch.tensor([association(x, attribute_a, attribute_b) for x in target_x]))
-    mean_y = torch.mean(torch.tensor([association(y, attribute_a, attribute_b) for y in target_y]))
-    std_dev_xy = torch.std(torch.tensor([association(xy, attribute_a, attribute_b) for xy in target_xy]))
+    assoc_x = torch.tensor([association(x, attribute_a, attribute_b) for x in target_x])
+    assoc_y = torch.tensor([association(y, attribute_a, attribute_b) for y in target_y])
+    assoc_xy = torch.tensor([association(xy, attribute_a, attribute_b) for xy in target_xy])
 
-    return (mean_x - mean_y) / std_dev_xy
+    return (assoc_x.mean() - assoc_y.mean()) / assoc_xy.std()
 
 
 def get_representation(sentences: List[str], tokenizer, model) -> torch.tensor:
