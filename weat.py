@@ -1,10 +1,33 @@
 from typing import List
 import numpy as np
+import scipy
 import json
 
 import torch
 from torch import nn
 from transformers import pipeline
+
+
+def cosine_similarity(u: np.array, v: np.array) -> float:
+    return 1.0 - scipy.spatial.distance.cosine(u, v)
+
+
+def association(w, attribute_a, attribute_b):
+    cos_a = np.array([cosine_similarity(w, a) for a in attribute_a])
+    cos_b = np.array([cosine_similarity(w, b) for b in attribute_b])
+    return cos_a.mean() - cos_b.mean()
+
+
+def weat(
+    target_x: np.array,
+    target_y: np.array,
+    attribute_a: np.array,
+    attribute_b: np.array
+) -> float:
+    sum_x = sum([association(x, attribute_a, attribute_b) for x in target_x])
+    sum_y = sum([association(y, attribute_a, attribute_b) for y in target_y])
+    
+    return sum_x - sum_y
 
 
 def get_data(file_name):
@@ -59,6 +82,12 @@ def main():
     print(
         [arr.shape for arr in [x_repr, y_repr, a_repr, b_repr]]
     )
+
+    seat = weat(
+        target_x=x_repr, target_y=y_repr, attribute_a=a_repr, attribute_b=b_repr
+    )
+
+    print(f'Sentence-WEAT: {seat} \t (for {data_file_name}).')
 
 
 if __name__ == "__main__":
