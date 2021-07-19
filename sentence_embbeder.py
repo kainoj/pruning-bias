@@ -1,4 +1,5 @@
 from typing import List
+from transformers import AutoModel, AutoTokenizer
 import torch
 
 class SentenceEmbedder():
