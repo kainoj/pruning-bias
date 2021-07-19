@@ -24,8 +24,11 @@ class WEAT():
         self.target_x, self.target_y, self.attribute_a, self.attribute_b = \
             self._get_data(data_filename)
 
-    def _get_data(self, data_filename: str) -> Tuple[List[str], List[str], List[str], List[str]]:
-        """Load test data
+    def _get_data(
+        self,
+        data_filename: str
+    ) -> Tuple[List[str], List[str], List[str], List[str]]:
+        """Load data for the WEAT test
         
         Args:
             data_filename: path to .jsonl file containing test data.
@@ -42,7 +45,7 @@ class WEAT():
 
         return target_x, target_y, attribute_a, attribute_b
 
-    def association(self,
+    def s_wAB(self,
         w: torch.tensor,
         attribute_a: torch.tensor,
         attribute_b: torch.tensor
@@ -54,16 +57,16 @@ class WEAT():
         assoc_b = nn.CosineSimilarity(dim=1)(_w, attribute_b)
         return assoc_a.mean() - assoc_b.mean()
 
-    def weat(self, 
+    def s_XYAB(self, 
         target_x: torch.tensor,
         target_y: torch.tensor,
         attribute_a: torch.tensor,
         attribute_b: torch.tensor
     ) -> float:
-        """Differential association of 2 sets of target words with the attributes"""
+        """Differential association of 2 sets of target words with attributes"""
 
-        sum_x = sum([self.association(x, attribute_a, attribute_b) for x in target_x])
-        sum_y = sum([self.association(y, attribute_a, attribute_b) for y in target_y])
+        sum_x = sum([self.s_wAB(x, attribute_a, attribute_b) for x in target_x])
+        sum_y = sum([self.s_wAB(y, attribute_a, attribute_b) for y in target_y])
         return sum_x - sum_y
 
     def effect_size(
@@ -81,9 +84,9 @@ class WEAT():
 
         target_xy = torch.vstack((target_x, target_y))
 
-        assoc_x = [self.association(x, attribute_a, attribute_b) for x in target_x]
-        assoc_y = [self.association(y, attribute_a, attribute_b) for y in target_y]
-        assoc_xy = [self.association(xy, attribute_a, attribute_b) for xy in target_xy]
+        assoc_x = [self.s_wAB(x, attribute_a, attribute_b) for x in target_x]
+        assoc_y = [self.s_wAB(y, attribute_a, attribute_b) for y in target_y]
+        assoc_xy = [self.s_wAB(xy, attribute_a, attribute_b) for xy in target_xy]
 
         assoc_x = torch.tensor(assoc_x)
         assoc_y = torch.tensor(assoc_y)
