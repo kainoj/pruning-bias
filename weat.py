@@ -63,6 +63,21 @@ def weat_runner(
 
     return np.mean(scores)
 
+def weat_effect_size(
+    target_x: np.array,
+    target_y: np.array,
+    attribute_a: np.array,
+    attribute_b: np.array,
+) -> float:
+
+    target_xy = np.vstack((target_x, target_y))
+
+    mean_x = np.mean([association(x, attribute_a, attribute_b) for x in target_x])
+    mean_y = np.mean([association(y, attribute_a, attribute_b) for y in target_y])
+    std_dev_xy = np.std([association(xy, attribute_a, attribute_b) for xy in target_xy])
+
+    return (mean_x - mean_y) / std_dev_xy
+
 
 def get_data(file_name):
     with open(file_name) as f:
@@ -96,7 +111,7 @@ def get_repr(x, y, a, b):
 
 def main():
     model_name = 'distilbert-base-uncased'
-    data_file_name = 'data/sent-weat7b.jsonl'
+    data_file_name = 'data/sent-weat6.jsonl'
 
     feature_extractor = pipeline(
         'feature-extraction',
@@ -117,11 +132,11 @@ def main():
         [arr.shape for arr in [x_repr, y_repr, a_repr, b_repr]]
     )
 
-    seat = weat_runner(
+    y = weat_effect_size(
         target_x=x_repr, target_y=y_repr,
-        attribute_a=a_repr, attribute_b=b_repr,
-        num_reps=5000
+        attribute_a=a_repr, attribute_b=b_repr
     )
+    print(f"Effect size: {y}")
 
 
 if __name__ == "__main__":
