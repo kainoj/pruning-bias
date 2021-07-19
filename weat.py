@@ -29,6 +29,40 @@ def weat(
     
     return sum_x - sum_y
 
+def random_choice_2d(arr: np.array, size: int, replace: bool = False) -> np.array:
+    """Randomly chooses subset of rows of given size."""
+    idx = np.random.choice(arr.shape[0], size, replace)
+    return arr[idx]
+
+def weat_runner(
+    target_x: np.array,
+    target_y: np.array,
+    attribute_a: np.array,
+    attribute_b: np.array,
+    num_reps: int = 1000
+) -> float:
+
+    subset_size_target = min(target_x.shape[0], target_y.shape[0]) // 2
+    subset_size_attrib = min(attribute_a.shape[0], attribute_b.shape[0]) // 2
+
+    scores = []
+
+    print("Running WEAT...")
+
+    for i in range(num_reps):
+        s = weat(
+            target_x=random_choice_2d(target_x, size=subset_size_target),
+            target_y=random_choice_2d(target_y, size=subset_size_target),
+            attribute_a=random_choice_2d(attribute_a, size=subset_size_attrib),
+            attribute_b=random_choice_2d(attribute_b, size=subset_size_attrib)
+        )
+        scores.append(s)
+
+        if i % 100 == 0:
+            print(f'[i={i:0>3}] {np.mean(scores)}')
+
+    return np.mean(scores)
+
 
 def get_data(file_name):
     with open(file_name) as f:
@@ -83,11 +117,11 @@ def main():
         [arr.shape for arr in [x_repr, y_repr, a_repr, b_repr]]
     )
 
-    seat = weat(
-        target_x=x_repr, target_y=y_repr, attribute_a=a_repr, attribute_b=b_repr
+    seat = weat_runner(
+        target_x=x_repr, target_y=y_repr,
+        attribute_a=a_repr, attribute_b=b_repr,
+        num_reps=5000
     )
-
-    print(f'Sentence-WEAT: {seat} \t (for {data_file_name}).')
 
 
 if __name__ == "__main__":
