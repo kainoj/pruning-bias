@@ -30,17 +30,3 @@ class SentenceEmbedder():
 
         # Take the embedding of CLS token as sentence representation
         return outputs.last_hidden_state[:, 0, :]
-
-
-if __name__ == "__main__":
-    from seat import SEAT6, SEAT7, SEAT8
-
-    model_name = 'distilbert-base-uncased'
-    
-    embedder = SentenceEmbedder(model_name)
-
-    seat_metrics = {"SEAT6": SEAT6(), "SEAT7": SEAT7(), "SEAT8": SEAT8()}
-
-    for name in seat_metrics:
-        value = seat_metrics[name](embedder)
-        print(f"{name}: {value}")
