@@ -37,21 +37,13 @@ def main():
 
             if len(male) > 0 and len(female) == 0:
                 male_cntr += 1
-                # print(f"L{iter+1}\t  MALE: ", male)
             
             if len(female) > 0 and len(male) == 0:
                 female_cntr += 1
-                # print(f"L{iter+1}\tFEMALE: ", female)
                 
             if len(stereo) > 0 and len(male) == 0 and len(female) == 0:
-                # print(f"L{iter+1}\t   STERE: ", stereo)
                 stereo_cntr += 1
 
-    print(f'male:   {male_cntr}')
-    print(f'female: {female_cntr}')
-    print(f'stereo: {stereo_cntr}')
-    
-    
 
 if __name__ == "__main__":
     main()
