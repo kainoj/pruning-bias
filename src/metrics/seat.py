@@ -1,4 +1,4 @@
-from weat import WEAT
+from metrics.weat import WEAT
 
 """These are SEAT score wrappers, as proposed by May et al, 2019:
 "On Measuring Social Biases in Sentence Encoders"
