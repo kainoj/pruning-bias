@@ -1,0 +1,6 @@
+models:
+    - bert-base-uncased
+    - roberta-base
+    - albert-base-v2
+    - distilbert-base-uncased
+    - electra-small-discriminator
