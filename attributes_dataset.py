@@ -3,6 +3,7 @@ import urllib.request
 import gzip
 import shutil
 import regex as re
+import pickle
 
 from pathlib import Path
 
@@ -18,6 +19,8 @@ class AttributesDataset(Dataset):
     female_attributes_filepath = 'data/female.txt'
     male_attributes_filepath = 'data/male.txt'
     stereotypes_filepath = 'data/stereotype.txt'
+
+    data_pickle = 'attributes_dataset.obj'
 
     def __init__(self, cache_dir='~/cache') -> None:
         super().__init__()
@@ -42,7 +45,7 @@ class AttributesDataset(Dataset):
             urllib.request.urlretrieve(self.news_data_url, data_zip_path)
         
         if not data_txt_path.exists():
-            print(f'Extracting data to {data_txt_path}')
+            print(f'Uncompressing data to {data_txt_path}')
             with gzip.open(data_zip_path, 'rt') as f_in:
                 with open(data_txt_path, 'wt') as f_out:
                     shutil.copyfileobj(f_in, f_out)
@@ -53,8 +56,24 @@ class AttributesDataset(Dataset):
         """Reads file with attributes and returns a set containing them all"""
         with open(filepath) as f:
             return {l.strip() for l in f.readlines()}
-    
+
     def extract_data(self) -> Dict[str, List[str]]:
+        pickle_path = self.cache_dir / self.data_pickle
+
+        if pickle_path.exists():
+            print("Loading data from cache")
+            with open(str(pickle_path), 'rb') as f:
+                print("f", f)
+                data = pickle.load(f)
+        else:
+            print('Extracting and caching data')
+            data = self._extract_data()
+            with open(str(pickle_path), 'wb') as f:
+                pickle.dump(data, f)
+
+        return data
+    
+    def _extract_data(self) -> Dict[str, List[str]]:
         # if not cached -> extract and cache
         # if cached -> retrun cached
 
