@@ -1,6 +1,7 @@
 import urllib.request
 import gzip
 import shutil
+import regex as re
 
 from pathlib import Path
 
@@ -13,11 +14,17 @@ class AttributesDataset(Dataset):
     news_data_txt = 'news-commentary-v15.en.txt'
     news_data_url = 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'
 
+    female_attributes_filepath = 'data/female.txt'
+    male_attributes_filepath = 'data/male.txt'
+    stereotypes_filepath = 'data/stereotype.txt'
+
     def __init__(self, cache_dir='~/cache') -> None:
         super().__init__()
 
         self.cache_dir = self._prepare_cache_dir(cache_dir)
         self.data_txt_path = self.prepare_data()
+
+        self.extract_data()
 
     def _prepare_cache_dir(self, cache_dir) -> Path:
         _cache_dir = Path(cache_dir).expanduser() / 'bs-data'
@@ -41,10 +48,53 @@ class AttributesDataset(Dataset):
         
         return data_txt_path
     
+    def get_attribute_set(self, filepath: str) -> set:
+        """Reads file with attributes and returns a set containing them all"""
+        with open(filepath) as f:
+            return {l.strip() for l in f.readlines()}
+    
     def extract_data(self):
         # if not cached -> extract and cache
         # if cached -> retrun cached
-        pass
+
+        female_attr = self.get_attribute_set(self.female_attributes_filepath)
+        male_attr = self.get_attribute_set(self.male_attributes_filepath)
+        stereo_attr = self.get_attribute_set(self.stereotypes_filepath)
+        
+        # This regexp basically tokenizes a sentence over spaces and 's, 're, 've..
+        # It's originally taken from OpenAI's GPT-2 Encoder implementation
+        pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
+
+        male_cntr = 0
+        female_cntr = 0
+        stereo_cntr = 0
+
+        with open(self.data_txt_path) as f:
+            for iter, full_line in enumerate(f.readlines()):
+
+                line = full_line.strip()
+
+                if len(line) < 1 or len(line.split()) > 128 or len(line.split()) <= 1:
+                    continue
+
+                line_tokenized = {token.strip().lower() for token in re.findall(pat, line)}
+                
+                male = line_tokenized & male_attr
+                female = line_tokenized & female_attr
+                stereo = line_tokenized & stereo_attr
+
+                if len(male) > 0 and len(female) == 0:
+                    male_cntr += 1
+                
+                if len(female) > 0 and len(male) == 0:
+                    female_cntr += 1
+                    
+                if len(stereo) > 0 and len(male) == 0 and len(female) == 0:
+                    stereo_cntr += 1
+        
+        print(f'  male: {male_cntr}')
+        print(f'female: {female_cntr}')
+        print(f'stereo: {stereo_cntr}')
 
 
 if __name__ == "__main__":
