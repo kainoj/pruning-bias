@@ -10,6 +10,31 @@ from pathlib import Path
 from torch.utils.data import Dataset
 
 
+def download_and_unzip(url: str, path: Path) -> Path:
+
+    news_data_zip = Path(url).name
+    
+    data_zip_path = path / news_data_zip
+    data_txt_path = data_zip_path.with_suffix('.txt')
+
+    if not data_zip_path.exists():
+        print(f'Dowloading data into {data_zip_path}')
+        urllib.request.urlretrieve(url, data_zip_path)
+    
+    if not data_txt_path.exists():
+        print(f'Uncompressing data to {data_txt_path}')
+        with gzip.open(data_zip_path, 'rt') as f_in:
+            with open(data_txt_path, 'wt') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+    
+    return data_txt_path
+
+def mkdir_if_not_exist(cache_dir, extend_dir='') -> Path:
+    path = Path(cache_dir).expanduser() / extend_dir
+    Path(path).mkdir(parents=True, exist_ok=True)
+    return path
+
+
 class AttributesDataset(Dataset):
 
     news_data_url = 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'
@@ -23,34 +48,10 @@ class AttributesDataset(Dataset):
     def __init__(self, cache_dir='~/cache') -> None:
         super().__init__()
 
-        self.cache_dir = self._prepare_cache_dir(cache_dir)
-        self.data_txt_path = self.prepare_data()
+        self.cache_dir = mkdir_if_not_exist(cache_dir, 'bs-data')
+        self.data_txt_path = download_and_unzip(self.news_data_url, self.cache_dir)
 
         self.extract_data()
-
-    def _prepare_cache_dir(self, cache_dir) -> Path:
-        _cache_dir = Path(cache_dir).expanduser() / 'bs-data'
-        Path(_cache_dir).mkdir(parents=True, exist_ok=True)
-        return _cache_dir
-
-    def prepare_data(self):
-
-        news_data_zip = Path(self.news_data_url).name
-        
-        data_zip_path = self.cache_dir / news_data_zip
-        data_txt_path = data_zip_path.with_suffix('.txt')
-
-        if not data_zip_path.exists():
-            print(f'Dowloading data into {data_zip_path}')
-            urllib.request.urlretrieve(self.news_data_url, data_zip_path)
-        
-        if not data_txt_path.exists():
-            print(f'Uncompressing data to {data_txt_path}')
-            with gzip.open(data_zip_path, 'rt') as f_in:
-                with open(data_txt_path, 'wt') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-        
-        return data_txt_path
     
     def get_attribute_set(self, filepath: str) -> set:
         """Reads file with attributes and returns a set containing them all"""
