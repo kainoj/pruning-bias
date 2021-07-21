@@ -1,3 +1,4 @@
+from typing import Dict, List
 import urllib.request
 import gzip
 import shutil
@@ -53,7 +54,7 @@ class AttributesDataset(Dataset):
         with open(filepath) as f:
             return {l.strip() for l in f.readlines()}
     
-    def extract_data(self):
+    def extract_data(self) -> Dict[str, List[str]]:
         # if not cached -> extract and cache
         # if cached -> retrun cached
 
@@ -65,9 +66,9 @@ class AttributesDataset(Dataset):
         # It's originally taken from OpenAI's GPT-2 Encoder implementation
         pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
 
-        male_cntr = 0
-        female_cntr = 0
-        stereo_cntr = 0
+        male_sentences = []
+        female_sentences = []
+        stereotype_sentences = []
 
         with open(self.data_txt_path) as f:
             for iter, full_line in enumerate(f.readlines()):
@@ -84,18 +85,19 @@ class AttributesDataset(Dataset):
                 stereo = line_tokenized & stereo_attr
 
                 if len(male) > 0 and len(female) == 0:
-                    male_cntr += 1
+                    male_sentences.append(male)
                 
                 if len(female) > 0 and len(male) == 0:
-                    female_cntr += 1
+                    female_sentences.append(female)
                     
                 if len(stereo) > 0 and len(male) == 0 and len(female) == 0:
-                    stereo_cntr += 1
-        
-        print(f'  male: {male_cntr}')
-        print(f'female: {female_cntr}')
-        print(f'stereo: {stereo_cntr}')
+                    stereotype_sentences.append(stereo)
 
+        return {
+            'male': male_sentences,
+            'female': female_sentences,
+            'stereotype': stereotype_sentences
+        }
 
 if __name__ == "__main__":
     
