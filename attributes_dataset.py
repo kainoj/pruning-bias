@@ -12,8 +12,6 @@ from torch.utils.data import Dataset
 
 class AttributesDataset(Dataset):
 
-    news_data_zip = 'news-commentary-v15.en.gz'
-    news_data_txt = 'news-commentary-v15.en.txt'
     news_data_url = 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'
 
     female_attributes_filepath = 'data/female.txt'
@@ -37,8 +35,10 @@ class AttributesDataset(Dataset):
 
     def prepare_data(self):
 
-        data_zip_path = self.cache_dir / self.news_data_zip
-        data_txt_path = self.cache_dir / self.news_data_txt
+        news_data_zip = Path(self.news_data_url).name
+        
+        data_zip_path = self.cache_dir / news_data_zip
+        data_txt_path = data_zip_path.with_suffix('.txt')
 
         if not data_zip_path.exists():
             print(f'Dowloading data into {data_zip_path}')
