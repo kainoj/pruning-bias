@@ -22,7 +22,13 @@ class AttributesDataset(Dataset):
     def __init__(self, data_dir: str, rawdata: str) -> None:
         super().__init__()
         self.data_dir = data_dir
-        self.extract_data(rawdata)
+        self.data = self.extract_data(rawdata)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return ('T', f"This is test sample of index {idx}")
     
     def get_attribute_set(self, filepath: str) -> set:
         """Reads file with attributes and returns a set containing them all"""

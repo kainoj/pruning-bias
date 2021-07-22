@@ -1,3 +1,4 @@
 _target_: src.datamodules.attributes_datamodule.AttributesDataModule
 
+batch_size: 32  # TODO
 data_dir: ${data_dir}
