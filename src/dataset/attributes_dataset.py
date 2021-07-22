@@ -1,9 +1,9 @@
-from typing import Dict, List
+from typing import List, Tuple
 
 import regex as re
 import pickle
 
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 from torch.utils.data import Dataset
 
@@ -32,7 +32,7 @@ class AttributesDataset(Dataset):
         with open(quickfix_path) as f:
             return {l.strip() for l in f.readlines()}
 
-    def extract_data(self, rawdata: Path) -> Dict[str, List[str]]:
+    def extract_data(self, rawdata: Path) -> List[Tuple[str, str]]:
         cached_data_path = self.cache_dir / self.cached_data
 
         if cached_data_path.exists():
@@ -47,9 +47,7 @@ class AttributesDataset(Dataset):
 
         return data
     
-    def _extract_data(self, rawdata: Path) -> Dict[str, List[str]]:
-        # if not cached -> extract and cache
-        # if cached -> retrun cached
+    def _extract_data(self, rawdata: Path) -> List[Tuple[str, str]]:
 
         female_attr = self.get_attribute_set(self.female_attributes_filepath)
         male_attr = self.get_attribute_set(self.male_attributes_filepath)
@@ -59,9 +57,7 @@ class AttributesDataset(Dataset):
         # It's originally taken from OpenAI's GPT-2 Encoder implementation
         pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
 
-        male_sentences = []
-        female_sentences = []
-        stereotype_sentences = []
+        sentences = []
 
         with open(rawdata) as f:
             for iter, full_line in enumerate(f.readlines()):
@@ -78,16 +74,12 @@ class AttributesDataset(Dataset):
                 stereo = line_tokenized & stereo_attr
 
                 if len(male) > 0 and len(female) == 0:
-                    male_sentences.append(male)
+                    sentences.append(('M', male))
                 
                 if len(female) > 0 and len(male) == 0:
-                    female_sentences.append(female)
+                    sentences.append(('F', female))
                     
                 if len(stereo) > 0 and len(male) == 0 and len(female) == 0:
-                    stereotype_sentences.append(stereo)
+                    sentences.append(('S', stereo))
 
-        return {
-            'male': male_sentences,
-            'female': female_sentences,
-            'stereotype': stereotype_sentences
-        }
+        return sentences
