@@ -8,10 +8,7 @@ from pathlib import Path
 from torch.utils.data import Dataset
 
 
-
 class AttributesDataset(Dataset):
-
-    
 
     female_attributes_filepath = 'data/female.txt'
     male_attributes_filepath = 'data/male.txt'
@@ -19,17 +16,20 @@ class AttributesDataset(Dataset):
 
     data_pickle = 'attributes_dataset.obj'
 
-    def __init__(self, cache_dir='~/cache') -> None:
+    def __init__(self, chache_dir: Path) -> None:
         super().__init__()
-
-        # self.cache_dir = mkdir_if_not_exist(cache_dir, 'bs-data')
-        # self.data_txt_path = download_and_un_gzip(self.news_data_url, self.cache_dir)
-
+        self.cache_dir = chache_dir
         self.extract_data()
     
     def get_attribute_set(self, filepath: str) -> set:
         """Reads file with attributes and returns a set containing them all"""
-        with open(filepath) as f:
+
+        # This is cumbersome: hydra creates own build dir,
+        # where data/ is not present. We need to escape to original cwd
+        import hydra  # TODO(Przemek): do it better. Maybe download data?
+        quickfix_path = Path(hydra.utils.get_original_cwd()) / filepath
+
+        with open(quickfix_path) as f:
             return {l.strip() for l in f.readlines()}
 
     def extract_data(self) -> Dict[str, List[str]]:
