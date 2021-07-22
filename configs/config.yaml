@@ -3,8 +3,8 @@
 # specify here default training configuration
 defaults:
   - trainer: default.yaml
-  - model: null
-  - datamodule: null
+  - datamodule: attributes_datamodule.yaml
+  - model: mlm_debias.yaml
   - callbacks: null # set this to null if you don't want to use callbacks
   - logger: null # set logger here or use command line (e.g. `python run.py logger=wandb`)
 
