@@ -13,22 +13,29 @@ class AttributesDataModule(LightningDataModule):
 
     news_data_url = 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'
 
-    def __init__(self):
+    def __init__(self, data_dir: str):
         super().__init__()
         print("hello module")
+        print(data_dir, type(data_dir))
+        self.data_dir = data_dir
+        # self.cache_dir = 
 
     def prepare_data(self):
         # download, split, etc...
         # only called on 1 GPU/TPU in distributed
-        chache_dir = mkdir_if_not_exist('~/bs/tmp', 'bs-data')
-        rawdata = download_and_un_gzip(self.news_data_url, chache_dir)
+        # data_dir = mkdir_if_not_exist('~/bs/tmp', 'bs-data')
+        rawdata = download_and_un_gzip(self.news_data_url, self.data_dir)
 
-        ds = AttributesDataset(chache_dir=chache_dir, rawdata=rawdata)
+        # The first call will extract data and cache it
+        AttributesDataset(data_dir=self.data_dir, rawdata=rawdata)
 
     def setup(self, stage):
         # make assignments here (val/train/test split)
         # called on every process in DDP
-        pass
+        print("setting up")
+
+        # Data will be recovered from cache now
+        AttributesDataset(data_dir=self.data_dir, rawdata=None)
 
     def train_dataloader(self):
         # train_split = Dataset(...)

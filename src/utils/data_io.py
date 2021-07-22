@@ -10,7 +10,7 @@ from src.utils.utils import get_logger
 log = get_logger(__name__)
 
 
-def download_and_un_gzip(url: str, path: Path) -> Path:
+def download_and_un_gzip(url: str, path: str) -> Path:
     """Downloads and uncompresses a .gz file.
     
     Args:
@@ -23,12 +23,11 @@ def download_and_un_gzip(url: str, path: Path) -> Path:
 
     filename = Path(url).name
     
-    path_zip = path / filename
+    path_zip = Path(path) / filename
     path_txt = path_zip.with_suffix('.txt')
 
     if not path_zip.exists():
-        log.info(f'Download url: {url}')
-        log.info(f'Dowloading data into {path_zip}')
+        log.info(f'Dowloading {url} into {path_zip}')
         urllib.request.urlretrieve(url, path_zip)
     else:
         log.info(f'{path_zip} already exists, skipping download.')

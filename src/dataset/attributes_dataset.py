@@ -16,9 +16,9 @@ class AttributesDataset(Dataset):
 
     cached_data = 'attributes_dataset.obj'
 
-    def __init__(self, chache_dir: Path, rawdata: Path) -> None:
+    def __init__(self, data_dir: str, rawdata: str) -> None:
         super().__init__()
-        self.cache_dir = chache_dir
+        self.data_dir = data_dir
         self.extract_data(rawdata)
     
     def get_attribute_set(self, filepath: str) -> set:
@@ -32,8 +32,8 @@ class AttributesDataset(Dataset):
         with open(quickfix_path) as f:
             return {l.strip() for l in f.readlines()}
 
-    def extract_data(self, rawdata: Path) -> List[Tuple[str, str]]:
-        cached_data_path = self.cache_dir / self.cached_data
+    def extract_data(self, rawdata: str) -> List[Tuple[str, str]]:
+        cached_data_path = Path(self.data_dir) / self.cached_data
 
         if cached_data_path.exists():
             print("Loading data from cache")

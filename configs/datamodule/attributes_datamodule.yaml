@@ -1,1 +1,3 @@
 _target_: src.datamodules.attributes_datamodule.AttributesDataModule
+
+data_dir: ${data_dir}
