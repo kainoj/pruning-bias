@@ -4,8 +4,11 @@ import regex as re
 import pickle
 
 from pathlib import Path
-
 from torch.utils.data import Dataset
+from src.utils.utils import get_logger
+
+
+log = get_logger(__name__)
 
 
 class AttributesDataset(Dataset):
@@ -36,11 +39,11 @@ class AttributesDataset(Dataset):
         cached_data_path = Path(self.data_dir) / self.cached_data
 
         if cached_data_path.exists():
-            print("Loading data from cache")
+            log.info(f'Loading cached data from {cached_data_path}')
             with open(str(cached_data_path), 'rb') as f:
                 data = pickle.load(f)
         else:
-            print('Extracting and caching data')
+            log.info(f'Extracting data from {rawdata} and caching into {cached_data_path}')
             data = self._extract_data(rawdata=rawdata)
             with open(str(cached_data_path), 'wb') as f:
                 pickle.dump(data, f)
