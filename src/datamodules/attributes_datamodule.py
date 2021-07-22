@@ -1,7 +1,7 @@
 from pathlib import Path
 from pytorch_lightning import LightningDataModule
 
-# from src.dataset.attributes_dataset import AttributesDataset
+from src.dataset.attributes_dataset import AttributesDataset
 
 from src.utils.utils import get_logger
 from src.utils.data_io import download_and_un_gzip, mkdir_if_not_exist
@@ -21,7 +21,9 @@ class AttributesDataModule(LightningDataModule):
         # download, split, etc...
         # only called on 1 GPU/TPU in distributed
         chache_dir = mkdir_if_not_exist('~/bs/tmp', 'bs-data')
-        download_and_un_gzip(self.news_data_url, chache_dir)
+        rawdata = download_and_un_gzip(self.news_data_url, chache_dir)
+
+        ds = AttributesDataset(chache_dir=chache_dir, rawdata=rawdata)
 
     def setup(self, stage):
         # make assignments here (val/train/test split)

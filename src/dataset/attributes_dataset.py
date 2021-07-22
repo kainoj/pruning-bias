@@ -3,7 +3,7 @@ from typing import Dict, List
 import regex as re
 import pickle
 
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 from torch.utils.data import Dataset
 
@@ -14,12 +14,12 @@ class AttributesDataset(Dataset):
     male_attributes_filepath = 'data/male.txt'
     stereotypes_filepath = 'data/stereotype.txt'
 
-    data_pickle = 'attributes_dataset.obj'
+    cached_data = 'attributes_dataset.obj'
 
-    def __init__(self, chache_dir: Path) -> None:
+    def __init__(self, chache_dir: Path, rawdata: Path) -> None:
         super().__init__()
         self.cache_dir = chache_dir
-        self.extract_data()
+        self.extract_data(rawdata)
     
     def get_attribute_set(self, filepath: str) -> set:
         """Reads file with attributes and returns a set containing them all"""
@@ -32,22 +32,22 @@ class AttributesDataset(Dataset):
         with open(quickfix_path) as f:
             return {l.strip() for l in f.readlines()}
 
-    def extract_data(self) -> Dict[str, List[str]]:
-        pickle_path = self.cache_dir / self.data_pickle
+    def extract_data(self, rawdata: Path) -> Dict[str, List[str]]:
+        cached_data_path = self.cache_dir / self.cached_data
 
-        if pickle_path.exists():
+        if cached_data_path.exists():
             print("Loading data from cache")
-            with open(str(pickle_path), 'rb') as f:
+            with open(str(cached_data_path), 'rb') as f:
                 data = pickle.load(f)
         else:
             print('Extracting and caching data')
-            data = self._extract_data()
-            with open(str(pickle_path), 'wb') as f:
+            data = self._extract_data(rawdata=rawdata)
+            with open(str(cached_data_path), 'wb') as f:
                 pickle.dump(data, f)
 
         return data
     
-    def _extract_data(self) -> Dict[str, List[str]]:
+    def _extract_data(self, rawdata: Path) -> Dict[str, List[str]]:
         # if not cached -> extract and cache
         # if cached -> retrun cached
 
@@ -63,7 +63,7 @@ class AttributesDataset(Dataset):
         female_sentences = []
         stereotype_sentences = []
 
-        with open(self.data_txt_path) as f:
+        with open(rawdata) as f:
             for iter, full_line in enumerate(f.readlines()):
 
                 line = full_line.strip()
@@ -91,7 +91,3 @@ class AttributesDataset(Dataset):
             'female': female_sentences,
             'stereotype': stereotype_sentences
         }
-
-if __name__ == "__main__":
-    
-    ds = AttributesDataset(cache_dir='~/bs/tmp')
