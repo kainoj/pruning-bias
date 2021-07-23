@@ -3,7 +3,8 @@ from transformers import AutoModel, AutoTokenizer
 import torch
 import torch.nn as nn
 
-class SentenceEmbedder(nn.Module):
+
+class Pipeline(nn.Module):
 
     def __init__(self, model_name: str, embeddings_from: str='last') -> None:
         """Wrapper for 🤗's pipeline abstraction with custom embedding getter.
@@ -18,6 +19,8 @@ class SentenceEmbedder(nn.Module):
                 'last':
                 'all': 
         """
+        super().__init__()
+
         self.embeddings_from = embeddings_from
         
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -33,7 +36,6 @@ class SentenceEmbedder(nn.Module):
 
         outputs = self.model(**inputs, output_hidden_states=True)
 
-        
         if self.embeddings_from == 'CLS':
             return outputs.last_hidden_state[:, 0, :]
         
