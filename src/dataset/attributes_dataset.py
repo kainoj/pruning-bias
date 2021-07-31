@@ -1,7 +1,7 @@
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import regex as re
-import pickle
+
 
 from pathlib import Path
 from torch.utils.data import Dataset
@@ -13,82 +13,71 @@ log = get_logger(__name__)
 
 class AttributesDataset(Dataset):
 
-    female_attributes_filepath = 'data/female.txt'
-    male_attributes_filepath = 'data/male.txt'
-    stereotypes_filepath = 'data/stereotype.txt'
-
-    cached_data = 'attributes_dataset.obj'
-
-    def __init__(self, data_dir: str, rawdata: str) -> None:
+    def __init__(self, sentences: List[str]) -> None:
         super().__init__()
-        self.data_dir = data_dir
-        self.data = self.extract_data(rawdata)
+        self.sentences = sentences
 
     def __len__(self):
-        return len(self.data)
+        return len(self.sentences)
 
     def __getitem__(self, idx):
         return ('T', f"This is test sample of index {idx}")
-    
-    def get_attribute_set(self, filepath: str) -> set:
-        """Reads file with attributes and returns a set containing them all"""
 
-        # This is cumbersome: hydra creates own build dir,
-        # where data/ is not present. We need to escape to original cwd
-        import hydra  # TODO(Przemek): do it better. Maybe download data?
-        quickfix_path = Path(hydra.utils.get_original_cwd()) / filepath
 
-        with open(quickfix_path) as f:
-            return {l.strip() for l in f.readlines()}
+def get_attribute_set(filepath: str) -> set:
+    """Reads file with attributes and returns a set containing them all"""
 
-    def extract_data(self, rawdata: str) -> List[Tuple[str, str]]:
-        cached_data_path = Path(self.data_dir) / self.cached_data
+    # This is cumbersome: hydra creates own build dir,
+    # where data/ is not present. We need to escape to original cwd
+    import hydra  # TODO(Przemek): do it better. Maybe download data?
+    quickfix_path = Path(hydra.utils.get_original_cwd()) / filepath
 
-        if cached_data_path.exists():
-            log.info(f'Loading cached data from {cached_data_path}')
-            with open(str(cached_data_path), 'rb') as f:
-                data = pickle.load(f)
-        else:
-            log.info(f'Extracting data from {rawdata} and caching into {cached_data_path}')
-            data = self._extract_data(rawdata=rawdata)
-            with open(str(cached_data_path), 'wb') as f:
-                pickle.dump(data, f)
+    with open(quickfix_path) as f:
+        return {l.strip() for l in f.readlines()}
 
-        return data
-    
-    def _extract_data(self, rawdata: Path) -> List[Tuple[str, str]]:
 
-        female_attr = self.get_attribute_set(self.female_attributes_filepath)
-        male_attr = self.get_attribute_set(self.male_attributes_filepath)
-        stereo_attr = self.get_attribute_set(self.stereotypes_filepath)
-        
-        # This regexp basically tokenizes a sentence over spaces and 's, 're, 've..
-        # It's originally taken from OpenAI's GPT-2 Encoder implementation
-        pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
+def extract_data(
+    rawdata_path: Path,
+    male_attr_path: Path,
+    female_attr_path: Path,
+    stereo_attr_path: Path
+) -> Any: # TODO type
 
-        sentences = []
+    # Get lists of attributes
+    male_attr = get_attribute_set(male_attr_path)
+    female_attr = get_attribute_set(female_attr_path)
+    stereo_attr = get_attribute_set(stereo_attr_path)
 
-        with open(rawdata) as f:
-            for iter, full_line in enumerate(f.readlines()):
+    # This regexp basically tokenizes a sentence over spaces and 's, 're, 've..
+    # It's originally taken from OpenAI's GPT-2 Encoder implementation
+    pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
 
-                line = full_line.strip()
+    # Lists of sentences containing male, female and stereotype attributes
+    sentences_m = []
+    sentences_f = []
+    sentences_s = []
 
-                if len(line) < 1 or len(line.split()) > 128 or len(line.split()) <= 1:
-                    continue
+    with open(rawdata_path) as f:
+        for iter, full_line in enumerate(f.readlines()):
 
-                line_tokenized = {token.strip().lower() for token in re.findall(pat, line)}
+            line = full_line.strip()
+
+            if len(line) < 1 or len(line.split()) > 128 or len(line.split()) <= 1:
+                continue
+
+            line_tokenized = {token.strip().lower() for token in re.findall(pat, line)}
+            
+            male = line_tokenized & male_attr
+            female = line_tokenized & female_attr
+            stereo = line_tokenized & stereo_attr
+
+            if len(male) > 0 and len(female) == 0:
+                sentences_m.append(male)
+            
+            if len(female) > 0 and len(male) == 0:
+                sentences_f.append(female)
                 
-                male = line_tokenized & male_attr
-                female = line_tokenized & female_attr
-                stereo = line_tokenized & stereo_attr
+            if len(stereo) > 0 and len(male) == 0 and len(female) == 0: 
+                sentences_s.append(stereo)
 
-                if len(male) > 0 and len(female) == 0:
-                    sentences.append(('M', male))
-                
-                if len(female) > 0 and len(male) == 0:
-                    sentences.append(('F', female))
-                    
-                if len(stereo) > 0 and len(male) == 0 and len(female) == 0:
-                    sentences.append(('S', stereo))
-
-        return sentences
+    return sentences_m, sentences_f, sentences_s

@@ -10,12 +10,12 @@ from src.utils.utils import get_logger
 log = get_logger(__name__)
 
 
-def download_and_un_gzip(url: str, path: str) -> Path:
+def download_and_un_gzip(url: str, destination: Path) -> None:
     """Downloads and uncompresses a .gz file.
     
     Args:
         url: url of a file to be downloaded. Must be a `.gz` file
-        path: path to which uncompress the file
+        destination: where to save downloaded data
     
     Returns:
         path_txt: path to uncompressed file
@@ -23,8 +23,8 @@ def download_and_un_gzip(url: str, path: str) -> Path:
 
     filename = Path(url).name
     
-    path_zip = Path(path) / filename
-    path_txt = path_zip.with_suffix('.txt')
+    path_zip = destination.parent / filename
+    path_txt = destination
 
     if not path_zip.exists():
         log.info(f'Dowloading {url} into {path_zip}')
@@ -37,8 +37,7 @@ def download_and_un_gzip(url: str, path: str) -> Path:
         with gzip.open(path_zip, 'rt') as f_in:
             with open(path_txt, 'wt') as f_out:
                 shutil.copyfileobj(f_in, f_out)
-    
-    return path_txt
+
 
 def mkdir_if_not_exist(path: str, extend_path: str='') -> Path:
     """Makes a nested directory, if doesn't exist.
