@@ -1,6 +1,6 @@
 from pathlib import Path
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, ConcatDataset
 
 from src.dataset.attributes_dataset import AttributesDataset, extract_data, get_attribute_set
 
@@ -63,18 +63,21 @@ class AttributesDataModule(LightningDataModule):
         log.info(f'Loading cached data from {self.cached_data_path}')
         with open(str(self.cached_data_path), 'rb') as f:
             data = pickle.load(f)
-
-        print(type(data))
-        raise NotImplementedError()
-
-        dataset = AttributesDataset(data_dir=self.data_dir, rawdata=None)
-        data_size = len(dataset)
+        
+        # Make one dataset for each subset, so we can easily do train/dev splits
+        ds_male = AttributesDataset(sentences=data[0])
+        ds_female = AttributesDataset(sentences=data[1])
+        ds_stereo = AttributesDataset(sentences=data[2])
 
         #  We randomly sampled 1,000 sentences from each type of
-        #   extracted sentences as development data. TODO: do it better!
-        self.data_train, self.data_val = random_split(
-            dataset, [data_size - 1000, 1000]
-        )
+        #   extracted sentences as development data.
+        male_train, male_val = random_split(ds_male, [len(ds_male) - 1000, 1000])
+        female_train, female_val = random_split(ds_female, [len(ds_female) - 1000, 1000])
+        stereo_train, stereo_val = random_split(ds_stereo, [len(ds_stereo) - 1000, 1000])
+
+        self.data_train = ConcatDataset([male_train, female_train, stereo_train])
+        self.data_val = ConcatDataset([male_val, female_val, stereo_val])
+
 
     def train_dataloader(self):
         return DataLoader(

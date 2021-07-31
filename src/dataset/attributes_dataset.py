@@ -21,7 +21,7 @@ class AttributesDataset(Dataset):
         return len(self.sentences)
 
     def __getitem__(self, idx):
-        return ('T', f"This is test sample of index {idx}")
+        return f"This is test sample of index {idx}"
 
 
 def get_attribute_set(filepath: str) -> set:
