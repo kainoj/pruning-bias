@@ -65,9 +65,11 @@ class AttributesDataModule(LightningDataModule):
             data = pickle.load(f)
         
         # Make one dataset for each subset, so we can easily do train/dev splits
-        ds_male = AttributesDataset(sentences=data[0])
-        ds_female = AttributesDataset(sentences=data[1])
-        ds_stereo = AttributesDataset(sentences=data[2])
+        ds_male = AttributesDataset(sentences=data['male'])
+        ds_female = AttributesDataset(sentences=data['female'])
+        ds_stereo = AttributesDataset(sentences=data['stereo'])
+
+        attr2sents = data['attributes']
 
         #  We randomly sampled 1,000 sentences from each type of
         #   extracted sentences as development data.

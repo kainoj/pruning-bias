@@ -1,4 +1,5 @@
 from typing import Any, List, Tuple
+from collections import defaultdict 
 
 import regex as re
 
@@ -21,7 +22,7 @@ class AttributesDataset(Dataset):
         return len(self.sentences)
 
     def __getitem__(self, idx):
-        return f"This is test sample of index {idx}"
+        return self.sentences[idx]
 
 
 def get_attribute_set(filepath: str) -> set:
@@ -57,8 +58,11 @@ def extract_data(
     sentences_f = []
     sentences_s = []
 
+    # Dictionary mapping attributes to sentences containing that attributes
+    attr2sents = defaultdict(list)
+
     with open(rawdata_path) as f:
-        for iter, full_line in enumerate(f.readlines()):
+        for full_line in f.readlines():
 
             line = full_line.strip()
 
@@ -72,12 +76,23 @@ def extract_data(
             stereo = line_tokenized & stereo_attr
 
             if len(male) > 0 and len(female) == 0:
-                sentences_m.append(male)
-            
+                sentences_m.append(line)
+                for m in male:
+                    attr2sents[m].append(line)
+
             if len(female) > 0 and len(male) == 0:
-                sentences_f.append(female)
+                sentences_f.append(line)
+                for f in female:
+                    attr2sents[f].append(female)
                 
             if len(stereo) > 0 and len(male) == 0 and len(female) == 0: 
-                sentences_s.append(stereo)
+                sentences_s.append(line)
+                for s in stereo:
+                    attr2sents[s].append(line)
 
-    return sentences_m, sentences_f, sentences_s
+    return {
+        'male': sentences_m,
+        'female': sentences_f,
+        'stereo': sentences_s,
+        'attributes': attr2sents
+    }
