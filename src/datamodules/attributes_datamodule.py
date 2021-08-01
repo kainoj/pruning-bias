@@ -76,21 +76,14 @@ class AttributesDataModule(LightningDataModule):
         train_attr = [*m_train_attr, *f_train_attr, *s_train_attr]
         val_attr = [*m_val_attr, *f_val_attr, *s_val_attr]
 
+        attr2sents = data['attributes']
+
         # TODO: move somewhere else
         model_name = 'distilbert-base-uncased'
         tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        # Tokenize the raw inputs
-        train_encodings = tokenizer(train_text, return_tensors="pt", padding=True)
-        val_encodings =  tokenizer(val_text, return_tensors="pt", padding=True)
-
-        # This is a lil awkward since these sentences were already tokenized (doing 2x work)
-        attr2sents_encodings = {
-            key: tokenizer(val, return_tensors="pt", padding=True) for key, val in data['attributes'].items()
-        }
-
-        self.data_train = AttributesDataset(train_encodings, train_attr, attr2sents_encodings)
-        self.data_val = AttributesDataset(val_encodings, val_attr, attr2sents_encodings)
+        self.data_train = AttributesDataset(train_text, train_attr, attr2sents, tokenizer)
+        self.data_val = AttributesDataset(val_text, val_attr, attr2sents, tokenizer)
 
 
     def train_dataloader(self):
@@ -100,6 +93,7 @@ class AttributesDataModule(LightningDataModule):
             # We don't really need workers for in-mem data-right?
             # num_workers=self.num_workers,
             # pin_memory=self.pin_memory,
+            # collate_fn=lambda x: x,
             shuffle=True,
         )
 
@@ -110,5 +104,6 @@ class AttributesDataModule(LightningDataModule):
             # We don't really need workers for in-mem data-right?
             # num_workers=self.num_workers,
             # pin_memory=self.pin_memory,
+            # collate_fn=lambda x: x,
             shuffle=False,
         )

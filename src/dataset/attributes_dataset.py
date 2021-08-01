@@ -14,19 +14,35 @@ log = get_logger(__name__)
 
 class AttributesDataset(Dataset):
 
-    def __init__(self, encodings, attributes, attr2sents):
+    def __init__(self, sentences, attributes, attr2sents, tokenizer):
         super().__init__()
-        self.encodings = encodings
+        self.sentences = sentences
         self.attributes = attributes
         self.attr2sents = attr2sents
+        self.tokenizer = tokenizer
 
     def __len__(self):
         return len(self.attributes)
 
     def __getitem__(self, idx):
-        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
-        return item
+        sentence = self.sentences[idx]
+        
+        sentence_with_attributes = [self.attr2sents[attr] for attr in self.attributes[idx]]
 
+        sentence_encoded = self.tokenize(sentence)
+
+        # print(f"{idx} --- sentence: \n{sentence} \n\n attributes: {self.attributes[idx]}\n\n  #attr {len(sentence_with_attributes)} " )
+        # for a in self.attributes[idx]:
+        #     print(len(a))
+        # print("---")
+
+        return 32
+
+    def tokenize(self, sentence: str):
+        return self.tokenizer(
+            sentence, return_tensors="pt", padding=True, truncation=True, max_length=128
+        )
+  
 
 def get_attribute_set(filepath: str) -> set:
     """Reads file with attributes and returns a set containing them all"""
