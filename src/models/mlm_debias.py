@@ -26,7 +26,8 @@ class MLMDebias(LightningModule):
     def training_step(self, batch: Any, batch_idx: int):
         # TODO: take care of types. Sentence must me a List[str], is a tuple
         # Possibly the solution would be to fix the dataset class return type
-        sent = batch 
+        print(batch)
+        sent, for_static = batch 
         y = self(sent) # calls forward
 
         loss = None  # TODO

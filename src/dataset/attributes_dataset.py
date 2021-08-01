@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 from collections import defaultdict 
 
 import regex as re
@@ -14,15 +14,19 @@ log = get_logger(__name__)
 
 class AttributesDataset(Dataset):
 
-    def __init__(self, sentences: List[str]) -> None:
+    def __init__(self, sentences: List[str], attr2sents: Dict[str, List[str]]) -> None:
         super().__init__()
         self.sentences = sentences
+        self.attr2sents = attr2sents
 
     def __len__(self):
         return len(self.sentences)
 
     def __getitem__(self, idx):
-        return self.sentences[idx]
+        sentence, attributes = self.sentences[idx]
+        y = [self.attr2sents[a] for a in attributes]
+        print("sar", type(sentence))
+        return sentence, idx
 
 
 def get_attribute_set(filepath: str) -> set:
@@ -76,17 +80,17 @@ def extract_data(
             stereo = line_tokenized & stereo_attr
 
             if len(male) > 0 and len(female) == 0:
-                sentences_m.append(line)
+                sentences_m.append((line, male))
                 for m in male:
                     attr2sents[m].append(line)
 
             if len(female) > 0 and len(male) == 0:
-                sentences_f.append(line)
+                sentences_f.append((line, female))
                 for f in female:
                     attr2sents[f].append(female)
                 
             if len(stereo) > 0 and len(male) == 0 and len(female) == 0: 
-                sentences_s.append(line)
+                sentences_s.append((line, stereo))
                 for s in stereo:
                     attr2sents[s].append(line)
 

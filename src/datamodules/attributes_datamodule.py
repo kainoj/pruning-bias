@@ -40,8 +40,6 @@ class AttributesDataModule(LightningDataModule):
         # Path to cached data (lists of attributes)
         self.cached_data_path = self.data_dir / self.cached_data
 
-        print("RAW DATA DIR", self.rawdata_path, self.cached_data_path)
-
     def prepare_data(self):
         # Download and unzip the News dataset
         download_and_un_gzip(self.news_data_url, self.rawdata_path)
@@ -64,12 +62,13 @@ class AttributesDataModule(LightningDataModule):
         with open(str(self.cached_data_path), 'rb') as f:
             data = pickle.load(f)
         
-        # Make one dataset for each subset, so we can easily do train/dev splits
-        ds_male = AttributesDataset(sentences=data['male'])
-        ds_female = AttributesDataset(sentences=data['female'])
-        ds_stereo = AttributesDataset(sentences=data['stereo'])
-
         attr2sents = data['attributes']
+        
+        # Make one dataset for each subset, so we can easily do train/dev splits
+        ds_male = AttributesDataset(sentences=data['male'], attr2sents=attr2sents)
+        ds_female = AttributesDataset(sentences=data['female'], attr2sents=attr2sents)
+        ds_stereo = AttributesDataset(sentences=data['stereo'], attr2sents=attr2sents)
+
 
         #  We randomly sampled 1,000 sentences from each type of
         #   extracted sentences as development data.
