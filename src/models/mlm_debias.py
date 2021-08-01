@@ -20,15 +20,19 @@ class MLMDebias(LightningModule):
             embeddings_from=get_embeddings_from
         )
 
+    def on_train_start(self):
+        print('This is how you can access the dataset to get static embeddings')
+        y = self.train_dataloader().dataset
+
     def forward(self, x: List[str]):
         return self.model(x)
 
     def training_step(self, batch: Any, batch_idx: int):
         # TODO: take care of types. Sentence must me a List[str], is a tuple
         # Possibly the solution would be to fix the dataset class return type
-        print(batch)
-        sent, for_static = batch 
-        y = self(sent) # calls forward
+        print(len(batch))
+
+        # y = self(sent) # calls forward
 
         loss = None  # TODO
         return loss

@@ -30,11 +30,8 @@ class Pipeline(nn.Module):
         self.add_module(f'custom-{model_name}', self.model)
 
     def forward(self, sentences: List[str]) -> torch.tensor:
-
-        # Tokenizer does automatically prepend [CLS] to sentences.
-        inputs = self.tokenizer(sentences, return_tensors="pt", padding=True)
-
-        outputs = self.model(**inputs, output_hidden_states=True)
+        # TODO: change sentences type to tokenized stuff
+        outputs = self.model(**sentences, output_hidden_states=True)
 
         if self.embeddings_from == 'CLS':
             return outputs.last_hidden_state[:, 0, :]
