@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 from collections import defaultdict 
 
 import regex as re
@@ -25,8 +25,8 @@ class AttributesDataset(Dataset):
     def __getitem__(self, idx):
         sentence, attributes = self.sentences[idx]
         y = [self.attr2sents[a] for a in attributes]
-        print("sar", type(sentence))
-        return sentence, idx
+        # TODO
+        return sentence
 
 
 def get_attribute_set(filepath: str) -> set:
@@ -57,10 +57,11 @@ def extract_data(
     # It's originally taken from OpenAI's GPT-2 Encoder implementation
     pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
 
-    # Lists of sentences containing male, female and stereotype attributes
-    sentences_m = []
-    sentences_f = []
-    sentences_s = []
+    # Each sentences of the list contains at least one of M/F/S attribute
+    male_sents, female_sents, stereo_sents = [], [], []
+
+    # i-th element tells us which attributes are in the i-th sentence
+    male_sents_attr, female_sents_attr, stereo_sents_attr = [], [], []
 
     # Dictionary mapping attributes to sentences containing that attributes
     attr2sents = defaultdict(list)
@@ -70,33 +71,47 @@ def extract_data(
 
             line = full_line.strip()
 
+            # This is how they decied to filter out data in the paper
             if len(line) < 1 or len(line.split()) > 128 or len(line.split()) <= 1:
                 continue
 
             line_tokenized = {token.strip().lower() for token in re.findall(pat, line)}
             
+            # Dicts containing M/F/S attributes in each sentence
             male = line_tokenized & male_attr
             female = line_tokenized & female_attr
             stereo = line_tokenized & stereo_attr
 
+            # Note that a sentence might contain attributes of only one category
+            #   M/F/S. That's why we check for emptiness of other sets.
+
+            # Sentences with male attributes
             if len(male) > 0 and len(female) == 0:
-                sentences_m.append((line, male))
+                male_sents.append(line)
+                male_sents_attr.append(male)
+
                 for m in male:
                     attr2sents[m].append(line)
 
+            # Sentences with female attributes
             if len(female) > 0 and len(male) == 0:
-                sentences_f.append((line, female))
+                female_sents.append(line)
+                female_sents_attr.append(female)
+
                 for f in female:
                     attr2sents[f].append(female)
                 
+            # Sentences with stereotype attributes
             if len(stereo) > 0 and len(male) == 0 and len(female) == 0: 
-                sentences_s.append((line, stereo))
+                stereo_sents.append(line)
+                stereo_sents_attr.append(stereo)
+
                 for s in stereo:
                     attr2sents[s].append(line)
 
     return {
-        'male': sentences_m,
-        'female': sentences_f,
-        'stereo': sentences_s,
+        'male_sents': male_sents, 'male_sents_attr': male_sents_attr,
+        'female_sents': female_sents, 'female_sents_attr': female_sents_attr,
+        'stereo_sents': stereo_sents, 'stereo_sents_attr': stereo_sents_attr,
         'attributes': attr2sents
     }
