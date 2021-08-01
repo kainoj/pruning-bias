@@ -1,8 +1,10 @@
 from pathlib import Path
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader, random_split, ConcatDataset
+from torch.utils.data import DataLoader
+from sklearn.model_selection import train_test_split
+from transformers import AutoTokenizer
 
-from src.dataset.attributes_dataset import AttributesDataset, extract_data, get_attribute_set
+from src.dataset.attributes_dataset import AttributesDataset, extract_data
 
 from src.utils.utils import get_logger
 from src.utils.data_io import download_and_un_gzip
@@ -61,23 +63,34 @@ class AttributesDataModule(LightningDataModule):
         log.info(f'Loading cached data from {self.cached_data_path}')
         with open(str(self.cached_data_path), 'rb') as f:
             data = pickle.load(f)
-        
-        attr2sents = data['attributes']
-        
-        # Make one dataset for each subset, so we can easily do train/dev splits
-        ds_male = AttributesDataset(sentences=data['male'], attr2sents=attr2sents)
-        ds_female = AttributesDataset(sentences=data['female'], attr2sents=attr2sents)
-        ds_stereo = AttributesDataset(sentences=data['stereo'], attr2sents=attr2sents)
 
+        #  We randomly sampled 1,000 sentences from each type of extracted sentences as development data.
+        m_train_sents, m_val_sents, m_train_attr, m_val_attr = train_test_split(data['male_sents'], data['male_sents_attr'], test_size=1000)
+        f_train_sents, f_val_sents, f_train_attr, f_val_attr = train_test_split(data['female_sents'], data['female_sents_attr'], test_size=1000)
+        s_train_sents, s_val_sents, s_train_attr, s_val_attr = train_test_split(data['stereo_sents'], data['stereo_sents_attr'], test_size=1000)
 
-        #  We randomly sampled 1,000 sentences from each type of
-        #   extracted sentences as development data.
-        male_train, male_val = random_split(ds_male, [len(ds_male) - 1000, 1000])
-        female_train, female_val = random_split(ds_female, [len(ds_female) - 1000, 1000])
-        stereo_train, stereo_val = random_split(ds_stereo, [len(ds_stereo) - 1000, 1000])
+        # Merge splitted M/F/S data into one
+        train_text = [*m_train_sents, *f_train_sents, *s_train_sents]
+        val_text = [*m_val_sents, *f_val_sents, *s_val_sents]
 
-        self.data_train = ConcatDataset([male_train, female_train, stereo_train])
-        self.data_val = ConcatDataset([male_val, female_val, stereo_val])
+        train_attr = [*m_train_attr, *f_train_attr, *s_train_attr]
+        val_attr = [*m_val_attr, *f_val_attr, *s_val_attr]
+
+        # TODO: move somewhere else
+        model_name = 'distilbert-base-uncased'
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        # Tokenize the raw inputs
+        train_encodings = tokenizer(train_text, return_tensors="pt", padding=True)
+        val_encodings =  tokenizer(val_text, return_tensors="pt", padding=True)
+
+        # This is a lil awkward since these sentences were already tokenized (doing 2x work)
+        attr2sents_encodings = {
+            key: tokenizer(val, return_tensors="pt", padding=True) for key, val in data['attributes'].items()
+        }
+
+        self.data_train = AttributesDataset(train_encodings, train_attr, attr2sents_encodings)
+        self.data_val = AttributesDataset(val_encodings, val_attr, attr2sents_encodings)
 
 
     def train_dataloader(self):

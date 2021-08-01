@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 from collections import defaultdict 
 
 import regex as re
-
+import torch
 
 from pathlib import Path
 from torch.utils.data import Dataset
@@ -14,19 +14,18 @@ log = get_logger(__name__)
 
 class AttributesDataset(Dataset):
 
-    def __init__(self, sentences: List[str], attr2sents: Dict[str, List[str]]) -> None:
+    def __init__(self, encodings, attributes, attr2sents):
         super().__init__()
-        self.sentences = sentences
+        self.encodings = encodings
+        self.attributes = attributes
         self.attr2sents = attr2sents
 
     def __len__(self):
-        return len(self.sentences)
+        return len(self.attributes)
 
     def __getitem__(self, idx):
-        sentence, attributes = self.sentences[idx]
-        y = [self.attr2sents[a] for a in attributes]
-        # TODO
-        return sentence
+        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
+        return item
 
 
 def get_attribute_set(filepath: str) -> set:
@@ -99,7 +98,7 @@ def extract_data(
                 female_sents_attr.append(female)
 
                 for f in female:
-                    attr2sents[f].append(female)
+                    attr2sents[f].append(line)
                 
             # Sentences with stereotype attributes
             if len(stereo) > 0 and len(male) == 0 and len(female) == 0: 
