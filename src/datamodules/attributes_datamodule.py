@@ -64,27 +64,39 @@ class AttributesDataModule(LightningDataModule):
         with open(str(self.cached_data_path), 'rb') as f:
             data = pickle.load(f)
 
-        #  We randomly sampled 1,000 sentences from each type of extracted sentences as development data.
-        m_train_sents, m_val_sents, m_train_attr, m_val_attr = train_test_split(data['male_sents'], data['male_sents_attr'], test_size=1000)
-        f_train_sents, f_val_sents, f_train_attr, f_val_attr = train_test_split(data['female_sents'], data['female_sents_attr'], test_size=1000)
-        s_train_sents, s_val_sents, s_train_attr, s_val_attr = train_test_split(data['stereo_sents'], data['stereo_sents_attr'], test_size=1000)
-
-        # Merge splitted M/F/S data into one
-        train_text = [*m_train_sents, *f_train_sents, *s_train_sents]
-        val_text = [*m_val_sents, *f_val_sents, *s_val_sents]
-
-        train_attr = [*m_train_attr, *f_train_attr, *s_train_attr]
-        val_attr = [*m_val_attr, *f_val_attr, *s_val_attr]
-
-        attr2sents = data['attributes']
-
         # TODO: move somewhere else
         model_name = 'distilbert-base-uncased'
         tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        self.data_train = AttributesDataset(train_text, train_attr, attr2sents, tokenizer)
-        self.data_val = AttributesDataset(val_text, val_attr, attr2sents, tokenizer)
+        # "We randomly sampled 1,000 sentences from each type of extracted sentences as development data.""
+        # Male&Female are our "attributes"
+        m_train_sents, m_val_sents, m_train_attr, m_val_attr = train_test_split(data['male_sents'], data['male_sents_attr'], test_size=1000)
+        f_train_sents, f_val_sents, f_train_attr, f_val_attr = train_test_split(data['female_sents'], data['female_sents_attr'], test_size=1000)
+        # Steretypes are our "targets"
+        s_train_sents, s_val_sents, s_train_trgt, s_val_trgt = train_test_split(data['stereo_sents'], data['stereo_sents_trgt'], test_size=1000)
 
+        train_sentences = s_train_sents
+        train_targets_in_sentences = s_train_trgt
+        attr2sents = data['attributes']
+
+        self.data_train = AttributesDataset(
+            sentences=train_sentences,
+            targets_in_sentences=train_targets_in_sentences,
+            attr2sents=attr2sents,
+            tokenizer=tokenizer
+        )
+        self.data_val = AttributesDataset(
+            sentences=s_val_sents,
+            targets_in_sentences=s_val_trgt,
+            attr2sents=attr2sents,
+            tokenizer=tokenizer
+        )
+        # Merge splitted M/F/S data into one
+        # train_text = [*m_train_sents, *f_train_sents, *s_train_sents]
+        # val_text = [*m_val_sents, *f_val_sents, *s_val_sents]
+
+        # train_attr = [*m_train_attr, *f_train_attr, *s_train_attr]
+        # val_attr = [*m_val_attr, *f_val_attr, *s_val_attr]
 
     def train_dataloader(self):
         return DataLoader(

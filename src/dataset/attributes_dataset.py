@@ -14,15 +14,54 @@ log = get_logger(__name__)
 
 class AttributesDataset(Dataset):
 
-    def __init__(self, sentences, attributes, attr2sents, tokenizer):
+    def __init__(
+        self,
+        sentences: List[str],
+        targets_in_sentences: List[set[str]],
+        attr2sent: dict[str, List[str]],
+        tokenizer
+    ) -> None:     
         super().__init__()
         self.sentences = sentences
-        self.attributes = attributes
-        self.attr2sents = attr2sents
+        self.targets_in_sentences = targets_in_sentences
+        self.attr2sent = attr2sent
         self.tokenizer = tokenizer
 
     def __len__(self):
-        return len(self.attributes)
+        return len(self.sentences)
+
+    def get_attributes_with_sentences(self):
+        """
+        For each attribute:
+            We want to have dict with fields:
+                - inputs_ids - tokenized sentences
+                - attention_mask - for tokenized sentences
+                - attribute_indices - indices of tokenized attributes in the sentence
+        This function would be called only once at epoch
+        """
+        res = []
+    
+        for attr, sents in self.attr2sent.items():
+            # Tokenize the attribute and remove CLS/SEP
+            attr_tokenized = self.tokenizer(attr, return_tensors="pt")['input_ids'][:, 1:-1]
+    
+            # Tokenize all sentences connected with the attribute
+            sents_tokenized = self.tokenize(sents)
+
+            # Build a boolean mask such that 
+            # mask[i, j]==True iff sents_tokenized[i, j] is a token of the attribute
+            mask  = torch.full_like(sents_tokenized['input_ids'], fill_value=False)
+
+            # Build that mask token by token
+            for a in attr_tokenized.flatten():
+                mask = mask | (a == sents_tokenized['input_ids'])
+
+            # Add that mask to the input dict
+            sents_tokenized['attributes_mask'] = mask
+
+            res.append(sents_tokenized)
+
+        return res
 
     def __getitem__(self, idx):
         sentence = self.sentences[idx]
@@ -62,11 +101,11 @@ def extract_data(
     female_attr_path: Path,
     stereo_attr_path: Path
 ) -> Any: # TODO type
-
+    # TODO: refactor names so it's clear what's attribute and what's target
     # Get lists of attributes
     male_attr = get_attribute_set(male_attr_path)
     female_attr = get_attribute_set(female_attr_path)
-    stereo_attr = get_attribute_set(stereo_attr_path)
+    stereo_trgt = get_attribute_set(stereo_attr_path)
 
     # This regexp basically tokenizes a sentence over spaces and 's, 're, 've..
     # It's originally taken from OpenAI's GPT-2 Encoder implementation
@@ -75,8 +114,8 @@ def extract_data(
     # Each sentences of the list contains at least one of M/F/S attribute
     male_sents, female_sents, stereo_sents = [], [], []
 
-    # i-th element tells us which attributes are in the i-th sentence
-    male_sents_attr, female_sents_attr, stereo_sents_attr = [], [], []
+    # i-th element tells us which attributes/targets are in the i-th sentence
+    male_sents_attr, female_sents_attr, stereo_sents_trgt = [], [], []
 
     # Dictionary mapping attributes to sentences containing that attributes
     attr2sents = defaultdict(list)
@@ -92,10 +131,10 @@ def extract_data(
 
             line_tokenized = {token.strip().lower() for token in re.findall(pat, line)}
             
-            # Dicts containing M/F/S attributes in each sentence
+            # Dicts containing M/F/S attributes/targets in each sentence
             male = line_tokenized & male_attr
             female = line_tokenized & female_attr
-            stereo = line_tokenized & stereo_attr
+            stereo = line_tokenized & stereo_trgt
 
             # Note that a sentence might contain attributes of only one category
             #   M/F/S. That's why we check for emptiness of other sets.
@@ -116,10 +155,10 @@ def extract_data(
                 for f in female:
                     attr2sents[f].append(line)
                 
-            # Sentences with stereotype attributes
+            # Sentences with stereotype target
             if len(stereo) > 0 and len(male) == 0 and len(female) == 0: 
                 stereo_sents.append(line)
-                stereo_sents_attr.append(stereo)
+                stereo_sents_trgt.append(stereo)
 
                 for s in stereo:
                     attr2sents[s].append(line)
@@ -127,6 +166,6 @@ def extract_data(
     return {
         'male_sents': male_sents, 'male_sents_attr': male_sents_attr,
         'female_sents': female_sents, 'female_sents_attr': female_sents_attr,
-        'stereo_sents': stereo_sents, 'stereo_sents_attr': stereo_sents_attr,
+        'stereo_sents': stereo_sents, 'stereo_sents_trgt': stereo_sents_trgt,
         'attributes': attr2sents
     }
