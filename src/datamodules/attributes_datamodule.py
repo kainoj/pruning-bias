@@ -5,7 +5,6 @@ from sklearn.model_selection import train_test_split
 from transformers import AutoTokenizer
 
 from src.dataset.attributes_dataset import AttributesDataset, extract_data
-
 from src.utils.utils import get_logger
 from src.utils.data_io import download_and_un_gzip
 
@@ -77,18 +76,18 @@ class AttributesDataModule(LightningDataModule):
 
         train_sentences = s_train_sents
         train_targets_in_sentences = s_train_trgt
-        attr2sents = data['attributes']
+        attr2sent = data['attributes']
 
         self.data_train = AttributesDataset(
             sentences=train_sentences,
             targets_in_sentences=train_targets_in_sentences,
-            attr2sents=attr2sents,
+            attr2sent=attr2sent,
             tokenizer=tokenizer
         )
         self.data_val = AttributesDataset(
             sentences=s_val_sents,
             targets_in_sentences=s_val_trgt,
-            attr2sents=attr2sents,
+            attr2sent=attr2sent,
             tokenizer=tokenizer
         )
         # Merge splitted M/F/S data into one

@@ -1,10 +1,11 @@
 from typing import Any, Dict, List
 from collections import defaultdict 
+from functools import partial
+from pathlib import Path
 
 import regex as re
 import torch
 
-from pathlib import Path
 from torch.utils.data import Dataset
 from src.utils.utils import get_logger
 
@@ -25,7 +26,7 @@ class AttributesDataset(Dataset):
         self.sentences = sentences
         self.targets_in_sentences = targets_in_sentences
         self.attr2sent = attr2sent
-        self.tokenizer = tokenizer
+        self._tokenizer = tokenizer  # tokenizer should be accessed via tokenize()
 
     def __len__(self):
         return len(self.sentences)
@@ -38,12 +39,14 @@ class AttributesDataset(Dataset):
                 - attention_mask - for tokenized sentences
                 - attribute_indices - indices of tokenized attributes in the sentence
         This function would be called only once at epoch
+
+        TODO: we can actually cache these results
         """
         res = []
     
         for attr, sents in self.attr2sent.items():
             # Tokenize the attribute and remove CLS/SEP
-            attr_tokenized = self.tokenizer(attr, return_tensors="pt")['input_ids'][:, 1:-1]
+            attr_tokenized = self.tokenize(attr, padding=False)['input_ids'][:, 1:-1]
     
             # Tokenize all sentences connected with the attribute
             sents_tokenized = self.tokenize(sents)
@@ -65,24 +68,20 @@ class AttributesDataset(Dataset):
 
     def __getitem__(self, idx):
         sentence = self.sentences[idx]
-        
-        sentence_with_attributes = [self.attr2sents[attr] for attr in self.attributes[idx]]
+        # TODO: This is only for sentence-level debiasing
+        #   For token-level, we need an additional mask for targets!
+        return self.tokenize(sentence)
 
-        sentence_encoded = self.tokenize(sentence)
-
-        # print(f"{idx} --- sentence: \n{sentence} \n\n attributes: {self.attributes[idx]}\n\n  #attr {len(sentence_with_attributes)} " )
-        # for a in self.attributes[idx]:
-        #     print(len(a))
-        # print("---")
-
-        return 32
-
-    def tokenize(self, sentence: str):
-        return self.tokenizer(
-            sentence, return_tensors="pt", padding=True, truncation=True, max_length=128
+    def tokenize(self, sentence, padding='max_length'):
+        """Wrapper for tokenizer to ensure every sentence gets padded to same length"""
+        return self._tokenizer(
+            sentence,
+            padding=padding,
+            truncation=True,
+            max_length=128,
+            return_tensors="pt"
         )
   
-
 def get_attribute_set(filepath: str) -> set:
     """Reads file with attributes and returns a set containing them all"""
 
