@@ -4,7 +4,8 @@ from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 from transformers import AutoTokenizer
 
-from src.dataset.attributes_dataset import AttributesDataset, extract_data
+from src.dataset.attributes_dataset import AttributesDataset
+from src.dataset.utils import extract_data
 from src.utils.utils import get_logger
 from src.utils.data_io import download_and_un_gzip
 
