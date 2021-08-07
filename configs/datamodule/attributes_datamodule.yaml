@@ -1,4 +1,0 @@
-_target_: src.datamodules.attributes_datamodule.AttributesDataModule
-
-batch_size: 4  # TODO
-data_dir: ${data_dir}

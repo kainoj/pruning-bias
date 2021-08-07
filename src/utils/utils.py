@@ -115,7 +115,7 @@ def empty(*args, **kwargs):
 def log_hyperparameters(
     config: DictConfig,
     model: pl.LightningModule,
-    datamodule: pl.LightningDataModule,
+    #datamodule: pl.LightningDataModule,
     trainer: pl.Trainer,
     callbacks: List[pl.Callback],
     logger: List[pl.loggers.LightningLoggerBase],
@@ -131,7 +131,7 @@ def log_hyperparameters(
     # choose which parts of hydra config will be saved to loggers
     hparams["trainer"] = config["trainer"]
     hparams["model"] = config["model"]
-    hparams["datamodule"] = config["datamodule"]
+    #hparams["datamodule"] = config["datamodule"]
     if "seed" in config:
         hparams["seed"] = config["seed"]
     if "callbacks" in config:
@@ -158,7 +158,7 @@ def log_hyperparameters(
 def finish(
     config: DictConfig,
     model: pl.LightningModule,
-    datamodule: pl.LightningDataModule,
+    #datamodule: pl.LightningDataModule,
     trainer: pl.Trainer,
     callbacks: List[pl.Callback],
     logger: List[pl.loggers.LightningLoggerBase],
