@@ -28,6 +28,16 @@ class AttributesDataset(Dataset):
         self.attr2sent = attr2sent
         self._tokenizer = tokenizer  # tokenizer should be accessed via tokenize()
 
+        """
+        For targets we need to keep:
+            - List[ (sentences, List[keywords] )]
+        For attributes we need to keep:
+            - List[ (List[sentences], keywords)]
+
+        In either cases, in getter, we return
+            - tokenized sentence with keyword mask
+        """
+
     def __len__(self):
         return len(self.sentences)
 

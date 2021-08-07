@@ -32,13 +32,13 @@ class MLMDebias(LightningModule):
         self.sentences_of_attributes = ds.get_attributes_with_sentences()
 
     def on_train_epoch_start(self) -> None:
-        return None
         # TODO the whole fun here
         # Surprisingly, in the paper they compute non-contextualized embeddings
         #  of atttributes at the beginning of each epoch 🤔
         print('getting the attribute static', self.device)
 
         for sents in self.sentences_of_attributes:
+            # shiet it's not the best idea to feed 1k+ sentences...
             sents.to(self.device)
             print(sents.keys())
             y = self(sents)
