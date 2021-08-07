@@ -1,11 +1,11 @@
-from os import setegid
+from typing import Any, Dict, List
 from pathlib import Path
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, dataset
 from sklearn.model_selection import train_test_split
 from transformers import AutoTokenizer
 
-from src.dataset.attributes_dataset import AttributesDataset
+from src.dataset.attributes_dataset import AttributesWithSentecesDataset
 from src.dataset.targets_dataset import SentencesWithTargetsDatset
 from src.dataset.utils import extract_data
 from src.utils.utils import get_logger
@@ -79,7 +79,6 @@ class AttributesDataModule(LightningDataModule):
 
         train_sentences = s_train_sents
         train_targets_in_sentences = s_train_trgt
-        attr2sent = data['attributes']
 
         self.data_train = SentencesWithTargetsDatset(
             sentences=train_sentences,
@@ -91,6 +90,20 @@ class AttributesDataModule(LightningDataModule):
             targets_in_sentences=s_val_trgt,
             tokenizer=tokenizer
         )
+
+        attributes: List[str] = []
+        sentences_of_attributes: List[List[str]] = []
+
+        for attr, sents in data['attributes'].items():
+            attributes.append(attr)
+            sentences_of_attributes.append(sents)
+
+        self.attributes_data = AttributesWithSentecesDataset(
+            attributes=attributes,
+            sentences_of_attributes=sentences_of_attributes,
+            tokenizer=tokenizer
+        )
+
         # Merge splitted M/F/S data into one
         # train_text = [*m_train_sents, *f_train_sents, *s_train_sents]
         # val_text = [*m_val_sents, *f_val_sents, *s_val_sents]
@@ -118,4 +131,11 @@ class AttributesDataModule(LightningDataModule):
             # pin_memory=self.pin_memory,
             # collate_fn=lambda x: x,
             shuffle=False,
+        )
+
+    def attributes_dataloader(self):
+        return DataLoader(
+            dataset = self.attributes_data,
+            batch_size=self.batch_size,
+            shuffle=False
         )
