@@ -19,20 +19,44 @@ class MLMDebias(LightningModule):
             model_name=model_name,
             embeddings_from=get_embeddings_from
         )
+        # For each attribute, keep its encdoing dict:
+        # inputs_ids, attention_mask, attribute_indices
+        self.sentences_of_attributes: List[dict[str, torch.tensor]]
 
-    def on_train_start(self):
-        print('This is how you can access the dataset to get static embeddings')
-        y = self.train_dataloader().dataset
+    def on_train_start(self) -> None:
+        print('Getting attributes....')
+        # Watch out! Since we're bypassing dataloader, i.e. accessing data
+        #  directly from dataset, we have to manage data device manually.
+        #  TODO: We can actually wrap it into a dataset and/or dataloader
+        ds = self.train_dataloader().dataset
+        self.sentences_of_attributes = ds.get_attributes_with_sentences()
 
-    def forward(self, x: List[str]):
-        return self.model(x)
+    def on_train_epoch_start(self) -> None:
+        return None
+        # TODO the whole fun here
+        # Surprisingly, in the paper they compute non-contextualized embeddings
+        #  of atttributes at the beginning of each epoch 🤔
+        print('getting the attribute static', self.device)
+
+        for sents in self.sentences_of_attributes:
+            sents.to(self.device)
+            print(sents.keys())
+            y = self(sents)
+
+        return super().on_train_epoch_start()
+
+    def forward(self, inputs):
+        return self.model(inputs)
 
     def training_step(self, batch: Any, batch_idx: int):
         # TODO: take care of types. Sentence must me a List[str], is a tuple
         # Possibly the solution would be to fix the dataset class return type
-        print(len(batch))
+        print(type(batch))
+        sentences_with_targets = batch
+        # sentences_of_attributes = self.sentences_of_attributes()
+        y = self(sentences_with_targets)
+        print(y.shape)
 
-        # y = self(sent) # calls forward
 
         loss = None  # TODO
         return loss

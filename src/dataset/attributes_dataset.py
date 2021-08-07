@@ -31,7 +31,7 @@ class AttributesDataset(Dataset):
     def __len__(self):
         return len(self.sentences)
 
-    def get_attributes_with_sentences(self):
+    def get_attributes_with_sentences(self) -> List[dict[str, torch.tensor]]:
         """
         For each attribute:
             We want to have dict with fields:
@@ -70,7 +70,14 @@ class AttributesDataset(Dataset):
         sentence = self.sentences[idx]
         # TODO: This is only for sentence-level debiasing
         #   For token-level, we need an additional mask for targets!
-        return self.tokenize(sentence)
+        print(sentence)
+
+        y = self.tokenize(sentence)
+
+        # Make sure that every tensor 1D of shape 'max_length'
+        #  (so it batchifies properly)
+        y = {key: val.squeeze(0) for key, val in y.items()}
+        return y
 
     def tokenize(self, sentence, padding='max_length'):
         """Wrapper for tokenizer to ensure every sentence gets padded to same length"""

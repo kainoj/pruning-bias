@@ -31,7 +31,11 @@ class Pipeline(nn.Module):
 
     def forward(self, sentences: List[str]) -> torch.tensor:
         # TODO: change sentences type to tokenized stuff
-        outputs = self.model(**sentences, output_hidden_states=True)
+        outputs = self.model(
+            sentences['input_ids'],
+            attention_mask=sentences['attention_mask'], 
+            output_hidden_states=True
+        )
 
         if self.embeddings_from == 'CLS':
             return outputs.last_hidden_state[:, 0, :]
