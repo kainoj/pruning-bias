@@ -1,3 +1,4 @@
+from os import setegid
 from pathlib import Path
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
@@ -5,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from transformers import AutoTokenizer
 
 from src.dataset.attributes_dataset import AttributesDataset
+from src.dataset.targets_dataset import SentencesWithTargetsDatset
 from src.dataset.utils import extract_data
 from src.utils.utils import get_logger
 from src.utils.data_io import download_and_un_gzip
@@ -79,16 +81,14 @@ class AttributesDataModule(LightningDataModule):
         train_targets_in_sentences = s_train_trgt
         attr2sent = data['attributes']
 
-        self.data_train = AttributesDataset(
+        self.data_train = SentencesWithTargetsDatset(
             sentences=train_sentences,
             targets_in_sentences=train_targets_in_sentences,
-            attr2sent=attr2sent,
             tokenizer=tokenizer
         )
-        self.data_val = AttributesDataset(
+        self.data_val = SentencesWithTargetsDatset(
             sentences=s_val_sents,
             targets_in_sentences=s_val_trgt,
-            attr2sent=attr2sent,
             tokenizer=tokenizer
         )
         # Merge splitted M/F/S data into one
