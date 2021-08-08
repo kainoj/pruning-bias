@@ -42,54 +42,29 @@ class AttributesWithSentecesDataset(Dataset):
     def __len__(self):
         return len(self.sentences)
 
-    def get_attributes_with_sentences(self) -> List[dict[str, torch.tensor]]:
-        """
-        For each attribute:
-            We want to have dict with fields:
-                - inputs_ids - tokenized sentences
-                - attention_mask - for tokenized sentences
-                - attribute_indices - indices of tokenized attributes in the sentence
-        This function would be called only once at epoch
-
-        TODO: we can actually cache these results
-        """
-        res = []
-    
-        for attr, sents in self.attr2sent.items():
-            # Tokenize the attribute and remove CLS/SEP
-            attr_tokenized = self.tokenize(attr, padding=False)['input_ids'][:, 1:-1]
-    
-            # Tokenize all sentences connected with the attribute
-            sents_tokenized = self.tokenize(sents)
-
-            # Build a boolean mask such that 
-            # mask[i, j]==True iff sents_tokenized[i, j] is a token of the attribute
-            mask  = torch.full_like(sents_tokenized['input_ids'], fill_value=False)
-
-            # Build that mask token by token
-            for a in attr_tokenized.flatten():
-                mask = mask | (a == sents_tokenized['input_ids'])
-
-            # Add that mask to the input dict
-            sents_tokenized['attributes_mask'] = mask
-
-            res.append(sents_tokenized)
-
-        return res
-
     def __getitem__(self, idx):
         attr_id, sentence = self.sentences[idx]
-        # TODO: This is only for sentence-level debiasing
-        #   For token-level, we need an additional mask for targets!
-        print(sentence)
+        attr = self.attributes[attr_id]
 
-        y = self.tokenize(sentence)
+        payload = self.tokenize(sentence)
+        
+        # Make sure that every tensor is 1D of shape 'max_length' (so it batchifies properly)
+        payload = {key: val.squeeze(0) for key, val in payload.items()}
 
-        # Make sure that every tensor is 1D of shape 'max_length'
-        #  (so it batchifies properly)
-        y = {key: val.squeeze(0) for key, val in y.items()}
-        y['attribute_id'] = attr_id
-        return y
+        # Tokens of the sentence
+        sent = payload['input_ids']
+
+        # Tokens of attribute (might be more than 1). Remove CLS/SEP and reshape, so it broadcasts nicely
+        attr = self.tokenize(attr, padding=False)['input_ids'][1:-1].reshape((-1, 1))
+
+        # Mask indicating positions of attributes within sentence econdings
+        # Each row of (sent==attr) contains position of consecutive tokens
+        mask = (sent == attr).sum(0)
+
+        payload['attribute_mask'] = mask
+        payload['attribute_id'] = attr_id
+        
+        return payload
 
     def tokenize(self, sentence, padding='max_length'):
         """Wrapper for tokenizer to ensure every sentence gets padded to same length"""
