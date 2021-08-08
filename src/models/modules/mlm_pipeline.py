@@ -29,14 +29,7 @@ class Pipeline(nn.Module):
         # take care whether it really sets model in train/eval/gpt etc 
         self.add_module(f'custom-{model_name}', self.model)
 
-    def forward(self, sentences: List[str]) -> torch.tensor:
-        # TODO: change sentences type to tokenized stuff
-        outputs = self.model(
-            sentences['input_ids'],
-            attention_mask=sentences['attention_mask'], 
-            output_hidden_states=True
-        )
-
+    def get_embeddings(self, outputs) -> torch.tensor:
         if self.embeddings_from == 'CLS':
             return outputs.last_hidden_state[:, 0, :]
         
@@ -50,4 +43,37 @@ class Pipeline(nn.Module):
             return outputs.hidden_states  #  concat maybe?
         
         raise NotImplementedError()
+    
 
+    def apply_output_mask(self, x: torch.tensor, mask: torch.tensor) -> torch.tensor:
+        print(x.shape, mask.shape)
+
+        #    x is of shape (batch_sz, max_seq_len=128, emb_dim)
+        # mask is of shape (batch_sz, max_seq_len=128)
+        # Fist two dimensions must agree, so we can broadcast mask values over
+        # the embeddings
+        assert x.shape[:2] == mask.shape
+
+        mask_size = (x.shape[0], x.shape[1], 1)
+
+        y = x * mask.reshape(mask_size)
+        return y
+
+    def forward(self, sentences: List[str]) -> torch.tensor:
+        # TODO: change sentences type to tokenized stuff
+        outputs = self.model(
+            sentences['input_ids'],
+            attention_mask=sentences['attention_mask'], 
+            output_hidden_states=True
+        )
+
+        # Choose where to get embeddings from (first, last, all layers...)
+        embeddings = self.get_embeddings(outputs)
+        
+        if 'attribute_mask' in sentences:
+            return self.apply_output_mask(
+                x=embeddings, 
+                mask=sentences['attribute_mask']
+            )
+
+        return embeddings

@@ -58,29 +58,19 @@ class MLMDebias(LightningModule):
         # inputs_ids, attention_mask, attribute_indices
         self.sentences_of_attributes: List[dict[str, torch.tensor]]
 
-    def on_train_start(self) -> None:
-        return
-        print('Getting attributes....')
-        # Watch out! Since we're bypassing dataloader, i.e. accessing data
-        #  directly from dataset, we have to manage data device manually.
-        #  TODO: We can actually wrap it into a dataset and/or dataloader
-        ds = self.train_dataloader().dataset
-        self.sentences_of_attributes = ds.get_attributes_with_sentences()
-
     def on_train_epoch_start(self) -> None:
-        return
         # TODO the whole fun here
         # Surprisingly, in the paper they compute non-contextualized embeddings
-        #  of atttributes at the beginning of each epoch 🤔
-        print('getting the attribute static', self.device)
+        #  of atttributes *at the beginning of each epoch* 🤔
+        log.info('Computing non-contextualized embeddings of attributes', self.device)
 
-        for sents in self.sentences_of_attributes:
-            # shiet it's not the best idea to feed 1k+ sentences...
-            sents.to(self.device)
-            print(sents.keys())
-            y = self(sents)
+        for sents in self.attributes_dataloader():
+            # print(sents)
+            sents = {key: val.to(self.device) for key, val in sents.items()}
 
-        return super().on_train_epoch_start()
+            for key, val in sents.items():
+                print(f'key {key}  val shape.  {val.shape}')
+            y = self(sents)       
 
     def forward(self, inputs):
         return self.model(inputs)
@@ -200,7 +190,7 @@ class MLMDebias(LightningModule):
 
     def attributes_dataloader(self):
         return DataLoader(
-            dataset = self.attributes_data,
+            dataset=self.attributes_data,
             batch_size=self.batch_size,
             shuffle=False
         )
