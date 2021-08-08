@@ -10,7 +10,7 @@ from src.dataset.attributes_dataset import AttributesWithSentecesDataset
 
 class AttributesDatasetTest(unittest.TestCase):
 
-    def test_get_item(self):
+    def setUp(self) -> None:
         attributes = [
             "tokenizer",  # "tokenizer" gets tokenized to 2 tokens
             "pizza"       # "pizza" gets tokenized to 1 token
@@ -21,20 +21,23 @@ class AttributesDatasetTest(unittest.TestCase):
         ]
 
         model_name = 'distilbert-base-uncased'
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        ds = AttributesWithSentecesDataset(
+        self.ds = AttributesWithSentecesDataset(
             attributes=attributes,
             sentences_of_attributes=sentences_of_attributes,
-            tokenizer=tokenizer
+            tokenizer=self.tokenizer
         )
-        
-        self.assertEqual(len(ds), 4)  # 4 = total #sentences
 
+    def test_ds_len(self):
+        # 4 = total #sentences
+        self.assertEqual(len(self.ds), 4) 
+
+    def test_get_item(self):
         # Answers[i] is all attributes in i-th sentence
         answers = ['tokenizer', 'tokenizer', 'pizza pizza', 'pizza']
 
-        for ans, data in zip(answers, ds):
+        for ans, data in zip(answers, self.ds):
            
             # Extract tokens only for attributes
             only_attribuets_tokens = torch.masked_select(
@@ -42,9 +45,10 @@ class AttributesDatasetTest(unittest.TestCase):
                 data['attribute_mask'].bool() # Mask of attributes
             )
 
-            decoded_str = tokenizer.decode(only_attribuets_tokens)
+            decoded_str = self.tokenizer.decode(only_attribuets_tokens)
 
             self.assertEqual(decoded_str, ans)
+
 
 if __name__ == '__main__':
     unittest.main()
