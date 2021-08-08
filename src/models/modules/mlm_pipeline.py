@@ -43,15 +43,23 @@ class Pipeline(nn.Module):
             return outputs.hidden_states  #  concat maybe?
         
         raise NotImplementedError()
-    
 
-    def apply_output_mask(self, x: torch.tensor, mask: torch.tensor) -> torch.tensor:
-        print(x.shape, mask.shape)
+    def apply_output_mask(
+            self, x: torch.tensor, mask: torch.tensor
+        ) -> torch.tensor:
+        """Extract specific tokens from `x`, defined by a `mask`.
 
-        #    x is of shape (batch_sz, max_seq_len=128, emb_dim)
-        # mask is of shape (batch_sz, max_seq_len=128)
-        # Fist two dimensions must agree, so we can broadcast mask values over
-        # the embeddings
+        Used, for example, to extrct embeddings of specific tokens.
+
+        Args:
+            x: inputs of shape (batch_sz, max_seq_len, emb_dim)
+            mask: binary mask of shape (batch_sz, max_seq_len)
+
+        Return:
+            Tensor `y`, such that embedding y[i, j] is zeroed iff mask[i, j]==0
+        """
+        # Fist two dimensions must agree, so we can
+        # broadcast mask values ove the entire embeddings
         assert x.shape[:2] == mask.shape
 
         mask_size = (x.shape[0], x.shape[1], 1)
