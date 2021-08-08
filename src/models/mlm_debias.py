@@ -62,15 +62,33 @@ class MLMDebias(LightningModule):
         # TODO the whole fun here
         # Surprisingly, in the paper they compute non-contextualized embeddings
         #  of atttributes *at the beginning of each epoch* 🤔
-        log.info('Computing non-contextualized embeddings of attributes', self.device)
+        log.info(f'Computing non-contextualized embeddings of attributes (dev: {self.device}).')
 
         for sents in self.attributes_dataloader():
-            # print(sents)
             sents = {key: val.to(self.device) for key, val in sents.items()}
 
             for key, val in sents.items():
                 print(f'key {key}  val shape.  {val.shape}')
-            y = self(sents)       
+
+            # Form the paper: "if a word is split into multiple sub-tokens,
+            # we compute the contextualized embedding of the word by
+            # averaging the contextualized embeddings of its constituent
+            # sub-tokens" (Sention 3).
+
+            # Outputs contains only embeddings of these-sub tokens now.
+            outputs = self(sents)
+
+            # The rest of token embeddings are zeroed. To compute the average,
+            # we need number of non-zero embeddings - for each batch
+            number_non_zer_embs = sents['attribute_mask'].sum(1, keepdim=True)
+
+            # Sum of sub-tokens for each batch-sentence
+            subtoken_sum = outputs.sum(1) 
+
+            # Eventually, we get the average of non-zero sub-tokens
+            non_contextualized = subtoken_sum / number_non_zer_embs
+            
+            # TODO: average the non_contextualized for each attribute (Eq. 2)
 
     def forward(self, inputs):
         return self.model(inputs)
