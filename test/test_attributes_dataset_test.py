@@ -73,6 +73,9 @@ class AttributesDatasetTest(unittest.TestCase):
 
         for batch in dl:
             outputs = pipeline(batch)
+            outputs = pipeline.apply_output_mask(
+                outputs, mask=batch['attribute_mask']
+            )
 
             # Output shape must have not been changed
             self.assertEqual(outputs.shape, (2, 128, 768)) # bsz, max_len, dim

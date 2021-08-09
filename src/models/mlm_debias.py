@@ -70,28 +70,13 @@ class MLMDebias(LightningModule):
             for key, val in sents.items():
                 print(f'key {key}  val shape.  {val.shape}')
 
-            # Form the paper: "if a word is split into multiple sub-tokens,
-            # we compute the contextualized embedding of the word by
-            # averaging the contextualized embeddings of its constituent
-            # sub-tokens" (Sention 3).
-
             # Outputs contains only embeddings of these-sub tokens now.
-            outputs = self(sents)
+            outputs = self(sents, return_word_embs=True)
 
-            # The rest of token embeddings are zeroed. To compute the average,
-            # we need number of non-zero embeddings - for each batch
-            number_non_zer_embs = sents['attribute_mask'].sum(1, keepdim=True)
+            # TODO: average the contextualized word embs for each attribute (Eq. 2)
 
-            # Sum of sub-tokens for each batch-sentence
-            subtoken_sum = outputs.sum(1) 
-
-            # Eventually, we get the average of non-zero sub-tokens
-            non_contextualized = subtoken_sum / number_non_zer_embs
-            
-            # TODO: average the non_contextualized for each attribute (Eq. 2)
-
-    def forward(self, inputs):
-        return self.model(inputs)
+    def forward(self, inputs, return_word_embs=False):
+        return self.model(inputs, return_word_embs)
 
     def training_step(self, batch: Any, batch_idx: int):
         # TODO: take care of types. Sentence must me a List[str], is a tuple

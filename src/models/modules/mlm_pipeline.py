@@ -49,7 +49,7 @@ class Pipeline(nn.Module):
         ) -> torch.tensor:
         """Extract specific tokens from `x`, defined by a `mask`.
 
-        Used, for example, to extrct embeddings of specific tokens.
+        Used, for example, to extract embeddings of specific tokens.
 
         Args:
             x: inputs of shape (batch_sz, max_seq_len, emb_dim)
@@ -67,7 +67,38 @@ class Pipeline(nn.Module):
         y = x * mask.reshape(mask_size)
         return y
 
-    def forward(self, sentences: List[str]) -> torch.tensor:
+    def get_word_embeddings(
+            self, x: torch.tensor, mask: torch.tensor
+        ) -> torch.tensor:
+        """Extracts word embeddings from embedded sentence, based on the mask.
+        
+        'If a word is split into multiple sub-tokens, we compute the
+        contextualized embedding of the word by averaging the contextualized
+        embeddings of its constituent sub-tokens' (The paper, Section 3).
+
+        Args:
+            x: embeddings of shape (batch_sz, max_seq_len, emb_dim)
+            mask: binary mask indicating postitions of sub-tokens
+
+        Return:  a word embedding being an avg of it's sub-tokens.
+            Shape: (batch_sz, emb_dim).
+        """
+        print(type(x), type(mask))
+
+        # `x` contains only embeddings of these-sub tokens now.
+        x_masked = self.apply_output_mask(x, mask)
+
+        # The rest of token embeddings are zeroed. To compute the average,
+        # we need number of non-zero embeddings - for each batch
+        number_non_zer_embs = mask.sum(1, keepdim=True)
+
+        # Sum of sub-tokens for each batch-sentence
+        subtoken_sum = x_masked.sum(1) 
+
+        # Eventually, we get the average of non-zero sub-tokens
+        return subtoken_sum / number_non_zer_embs
+
+    def forward(self, sentences, return_word_embs=False) -> torch.tensor:
         # TODO: change sentences type to tokenized stuff
         outputs = self.model(
             sentences['input_ids'],
@@ -77,11 +108,10 @@ class Pipeline(nn.Module):
 
         # Choose where to get embeddings from (first, last, all layers...)
         embeddings = self.get_embeddings(outputs)
-        
-        if 'attribute_mask' in sentences:
-            return self.apply_output_mask(
-                x=embeddings, 
+    
+        if return_word_embs:
+            return self.get_word_embeddings(
+                x=embeddings,
                 mask=sentences['attribute_mask']
             )
-
         return embeddings
