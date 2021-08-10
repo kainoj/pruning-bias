@@ -1,3 +1,4 @@
+from os import pipe
 import unittest
 import torch
 
@@ -36,6 +37,8 @@ class AttributesDatasetTest(unittest.TestCase):
         self.assertEqual(len(self.ds), 4) 
 
     def test_get_item(self):
+        """Get i-th item, extract tokens from the mask and check whether 
+        they decode to attributes."""
         # Answers[i] is all attributes in i-th sentence
         answers = ['tokenizer', 'tokenizer', 'pizza pizza', 'pizza']
 
@@ -96,6 +99,36 @@ class AttributesDatasetTest(unittest.TestCase):
                 self.assertEqual(decoded_str, answers[sample_no])
 
                 sample_no += 1
+
+    def test_get_word_embeddings(self):
+        pipeline = Pipeline(model_name=self.model_name, embeddings_from='last')
+
+        outs = torch.tensor([
+            [
+                [1, 1, 1, 1],  # For this batch sum of embeddings is
+                [2, 2, 2, 2],  # [3, 3, 3, 3] and there are two non-zero
+                [0, 0, 0, 0]   # embeddigs -> [1.5, 1.5, 1.5, 1.5]
+            ],
+            [
+                [0, 0, 0, 0],  # For this batch sum of embeddings is
+                [4, 4, 4, 4],  # [10, 10, 10, 10] and there are two non-zero
+                [6, 6, 6, 6]   # embeddigs -> [5, 5, 5, 5]
+            ]
+        ], dtype=torch.float)
+
+        mask = torch.tensor([
+            [1, 1, 0],
+            [0, 1, 1]
+        ])
+
+        answer = torch.tensor([
+            [1.5, 1.5, 1.5, 1.5],
+            [5.0, 5.0, 5.0, 5.0]
+        ])
+
+        result = pipeline.get_word_embeddings(x=outs, mask=mask)
+
+        self.assertTrue(torch.allclose(answer, result))
 
 
 if __name__ == '__main__':
