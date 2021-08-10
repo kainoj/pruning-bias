@@ -83,8 +83,6 @@ class Pipeline(nn.Module):
         Return:  a word embedding being an avg of it's sub-tokens.
             Shape: (batch_sz, emb_dim).
         """
-        print(type(x), type(mask))
-
         # `x` contains only embeddings of these-sub tokens now.
         x_masked = self.apply_output_mask(x, mask)
 

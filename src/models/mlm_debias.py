@@ -5,6 +5,7 @@ import torch
 from pytorch_lightning import LightningModule
 
 from pathlib import Path
+from tqdm import tqdm
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 from transformers import AutoTokenizer
@@ -59,21 +60,31 @@ class MLMDebias(LightningModule):
         self.sentences_of_attributes: List[dict[str, torch.tensor]]
 
     def on_train_epoch_start(self) -> None:
-        # TODO the whole fun here
         # Surprisingly, in the paper they compute non-contextualized embeddings
         #  of atttributes *at the beginning of each epoch* 🤔
-        log.info(f'Computing non-contextualized embeddings of attributes (dev: {self.device}).')
+        log.info(f'Computing non-contextualized embeddings of'
+                 f' {len(self.attributes_data.attributes)} attributes on'
+                 f' {len(self.attributes_data.sentences)} sentences.')
 
-        for sents in self.attributes_dataloader():
-            sents = {key: val.to(self.device) for key, val in sents.items()}
+        non_contextualzied_acc = torch.zeros(
+            (len(self.attributes_data.attributes), 768), # (# attributes, dim)
+            device=self.device
+        )
 
-            for key, val in sents.items():
-                print(f'key {key}  val shape.  {val.shape}')
+        with torch.no_grad():
+            for sents in tqdm(self.attributes_dataloader()):
 
-            # Outputs contains only embeddings of these-sub tokens now.
-            outputs = self(sents, return_word_embs=True)
+                sents = {key: val.to(self.device) for key, val in sents.items()}
 
-            # TODO: average the contextualized word embs for each attribute (Eq. 2)
+                # Outputs contains only contextualized word embs for attributes
+                outputs = self(sents, return_word_embs=True)
+
+                attribute_ids = sents['attribute_id']
+
+                assert outputs.shape[0] == attribute_ids.shape[0]
+
+                non_contextualzied_acc[attribute_ids] += outputs
+
 
     def forward(self, inputs, return_word_embs=False):
         return self.model(inputs, return_word_embs)
