@@ -60,16 +60,14 @@ class MLMDebias(LightningModule):
         self.sentences_of_attributes: List[dict[str, torch.tensor]]
 
     def on_train_epoch_start(self) -> None:
-        # Surprisingly, in the paper they compute non-contextualized embeddings
-        #  of atttributes *at the beginning of each epoch* 🤔
+
         log.info(f'Computing non-contextualized embeddings of'
                  f' {len(self.attributes_data.attributes)} attributes on'
                  f' {len(self.attributes_data.sentences)} sentences.')
 
-        non_contextualzied_acc = torch.zeros(
-            (len(self.attributes_data.attributes), 768), # (# attributes, dim)
-            device=self.device
-        )
+        num_attrs = len(self.attributes_data.attributes)
+        non_contextualized_acc = torch.zeros((num_attrs, 768), device=self.device)
+        non_contextualized_cntr = torch.zeros((num_attrs, 1), device=self.device)
 
         with torch.no_grad():
             for sents in tqdm(self.attributes_dataloader()):
@@ -83,7 +81,10 @@ class MLMDebias(LightningModule):
 
                 assert outputs.shape[0] == attribute_ids.shape[0]
 
-                non_contextualzied_acc[attribute_ids] += outputs
+                non_contextualized_acc[attribute_ids] += outputs
+                non_contextualized_cntr[attribute_ids] += 1
+            
+            non_contextualized = non_contextualized_acc / non_contextualized_cntr
 
 
     def forward(self, inputs, return_word_embs=False):
