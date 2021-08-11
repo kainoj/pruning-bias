@@ -20,7 +20,7 @@ class SentencesWithTargetsDatset(Dataset):
 
         self.sentences = sentences
         self.targets_in_sentences = targets_in_sentences
-        self._tokenizer = tokenizer
+        self.tokenizer = tokenizer
 
     def __len__(self):
         return len(self.sentences)
@@ -30,19 +30,9 @@ class SentencesWithTargetsDatset(Dataset):
         # TODO: This is only for sentence-level debiasing
         #   For token-level, we need an additional mask for targets!
 
-        y = self.tokenize(sentence)
+        y = self.tokenizer(sentence)
 
         # Make sure that every tensor is 1D of shape 'max_length'
         #  (so it batchifies properly)
         y = {key: val.squeeze(0) for key, val in y.items()}
         return y
-
-    def tokenize(self, sentence, padding='max_length'):
-        """Wrapper for tokenizer to ensure every sentence gets padded to same length"""
-        return self._tokenizer(
-            sentence,
-            padding=padding,
-            truncation=True,
-            max_length=128,
-            return_tensors="pt"
-        )

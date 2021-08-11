@@ -18,18 +18,20 @@ class AttributesWithSentecesDataset(Dataset):
         tokenizer
     ) -> None:     
         super().__init__()
+
+        log.warning("ATTRIBUTES ARE TRIMMEND FOR FASTER DEVELOPMENT")
+        """!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
+        attributes = attributes[:8]
+        sentences_of_attributes = sentences_of_attributes[:8]
+        """!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
+        cntr = 0
+        for i, a in enumerate(attributes):
+            log.info(f'{a} \t: {len(sentences_of_attributes[i])} sentences')
+            cntr += len(sentences_of_attributes[i])
+        log.info(f'    {cntr} sentences in total')
+
         self.attributes = attributes
-        self._tokenizer = tokenizer  # tokenizer should be accessed via tokenize()
-
-        """
-        For targets we need to keep:
-            - List[ (sentences, List[keywords] )]
-        For attributes we need to keep:
-            - List[ (List[sentences], keywords)]
-
-        In either cases, in getter, we return
-            - tokenized sentence with keyword mask
-        """
+        self.tokenizer = tokenizer
 
         self.sentences: List[tuple[int, str]] = []
 
@@ -46,7 +48,7 @@ class AttributesWithSentecesDataset(Dataset):
         attr_id, sentence = self.sentences[idx]
         attr = self.attributes[attr_id]
 
-        payload = self.tokenize(sentence)
+        payload = self.tokenizer(sentence)
         
         # Make sure that every tensor is 1D of shape 'max_length' (so it batchifies properly)
         payload = {key: val.squeeze(0) for key, val in payload.items()}
@@ -55,7 +57,7 @@ class AttributesWithSentecesDataset(Dataset):
         sent = payload['input_ids']
 
         # Tokens of attribute (might be more than 1). Remove CLS/SEP and reshape, so it broadcasts nicely
-        attr = self.tokenize(attr, padding=False)['input_ids'][:, 1:-1].reshape((-1, 1))
+        attr = self.tokenizer(attr, padding=False)['input_ids'][:, 1:-1].reshape((-1, 1))
 
         # Mask indicating positions of attributes within sentence econdings
         # Each row of (sent==attr) contains position of consecutive tokens
@@ -65,14 +67,3 @@ class AttributesWithSentecesDataset(Dataset):
         payload['attribute_id'] = attr_id
         
         return payload
-
-    def tokenize(self, sentence, padding='max_length'):
-        """Wrapper for tokenizer to ensure every sentence gets padded to same length"""
-        return self._tokenizer(
-            sentence,
-            padding=padding,
-            truncation=True,
-            max_length=128,
-            return_tensors="pt"
-        )
-  

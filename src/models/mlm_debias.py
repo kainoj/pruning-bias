@@ -8,7 +8,6 @@ from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
-from transformers import AutoTokenizer
 
 from src.dataset.attributes_dataset import AttributesWithSentecesDataset
 from src.dataset.targets_dataset import SentencesWithTargetsDatset
@@ -16,6 +15,7 @@ from src.dataset.utils import extract_data
 from src.utils.utils import get_logger
 from src.utils.data_io import download_and_un_gzip
 from src.models.modules.mlm_pipeline import Pipeline
+from src.models.modules.tokenizer import Tokenizer
 
 
 log = get_logger(__name__)
@@ -50,11 +50,12 @@ class MLMDebias(LightningModule):
         # Path to cached data (lists of attributes)
         self.cached_data_path = self.data_dir / self.cached_data
 
-
         self.model = Pipeline(
             model_name=model_name,
             embeddings_from=get_embeddings_from
         )
+
+        self.tokenizer = Tokenizer(model_name)
 
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor
@@ -151,10 +152,6 @@ class MLMDebias(LightningModule):
         with open(str(self.cached_data_path), 'rb') as f:
             data = pickle.load(f)
 
-        # TODO: move somewhere else
-        model_name = 'distilbert-base-uncased'
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-
         # "We randomly sampled 1,000 sentences from each type of extracted sentences as development data.""
         # Male&Female are our "attributes"
         m_train_sents, m_val_sents, m_train_attr, m_val_attr = train_test_split(data['male_sents'], data['male_sents_attr'], test_size=1000)
@@ -168,12 +165,12 @@ class MLMDebias(LightningModule):
         self.data_train = SentencesWithTargetsDatset(
             sentences=train_sentences,
             targets_in_sentences=train_targets_in_sentences,
-            tokenizer=tokenizer
+            tokenizer=self.tokenizer
         )
         self.data_val = SentencesWithTargetsDatset(
             sentences=s_val_sents,
             targets_in_sentences=s_val_trgt,
-            tokenizer=tokenizer
+            tokenizer=self.tokenizer
         )
 
         attributes: List[str] = []
@@ -186,7 +183,7 @@ class MLMDebias(LightningModule):
         self.attributes_data = AttributesWithSentecesDataset(
             attributes=attributes,
             sentences_of_attributes=sentences_of_attributes,
-            tokenizer=tokenizer
+            tokenizer=self.tokenizer
         )
 
         # Merge splitted M/F/S data into one
