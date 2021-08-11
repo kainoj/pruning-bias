@@ -6,3 +6,4 @@ outputs/
 data/
 tmp/
 logs/
+tensorboard/
