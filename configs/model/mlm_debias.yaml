@@ -4,3 +4,9 @@ model_name: 'distilbert-base-uncased'
 get_embeddings_from: 'last'
 batch_size: 4  # TODO
 data_dir: ${data_dir}
+
+
+weight_decay: 0.0
+learning_rate: 5e-5
+adam_eps: 1e-8
+warmup_steps: 0

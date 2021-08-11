@@ -5,6 +5,7 @@ import torch
 from pytorch_lightning import LightningModule
 
 from pathlib import Path
+from torch.autograd.grad_mode import no_grad
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
@@ -17,6 +18,7 @@ from src.utils.data_io import download_and_un_gzip
 from src.models.modules.mlm_pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
 
+from transformers import AdamW, get_linear_schedule_with_warmup
 
 log = get_logger(__name__)
 
@@ -37,12 +39,22 @@ class MLMDebias(LightningModule):
         model_name: str,
         get_embeddings_from: str,
         batch_size: int,
-        data_dir: str
+        data_dir: str,
+        learning_rate: float,
+        weight_decay: float,
+        adam_eps: float,
+        warmup_steps: int
     ) -> None:
         super().__init__()
+        self.save_hyperparameters()
 
+        self.model_name = model_name
         self.batch_size = batch_size
         self.data_dir = Path(data_dir)
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+        self.adam_eps = adam_eps
+        self.warmup_steps = warmup_steps
 
         # Path to raw dataset, in format: /data/dir/news-commentary-v15.en.txt
         self.rawdata_path = (self.data_dir / Path(self.news_data_url).name).with_suffix('.txt')
@@ -56,7 +68,6 @@ class MLMDebias(LightningModule):
         )
 
         self.tokenizer = Tokenizer(model_name)
-        self.model_name = model_name
 
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor
@@ -129,7 +140,40 @@ class MLMDebias(LightningModule):
         pass
 
     def configure_optimizers(self):
-        return None
+
+        train_batches = len(self.train_dataloader()) // self.trainer.gpus
+        total_epochs = self.trainer.max_epochs - self.trainer.min_epochs + 1
+        total_train_steps = (total_epochs * train_batches) // self.trainer.accumulate_grad_batches
+
+        no_decay = ["bias", "LayerNorm.weight"]
+
+        # These parameters are copied from the original code
+        optimizer_grouped_parameters = [
+        {
+            "params": [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
+            "weight_decay": self.weight_decay,
+        },
+        {
+            "params": [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
+            "weight_decay": 0.0
+        }]
+
+        optimizer = AdamW(
+            optimizer_grouped_parameters, 
+            lr=self.learning_rate,
+            eps=self.adam_eps
+        )
+
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=self.warmup_steps,
+            num_training_steps=total_train_steps
+        )
+
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": scheduler
+        }
     
     def prepare_data(self):
         # Download and unzip the News dataset
