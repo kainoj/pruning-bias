@@ -55,9 +55,9 @@ class MLMDebias(LightningModule):
             model_name=model_name,
             embeddings_from=get_embeddings_from
         )
-        # For each attribute, keep its encdoing dict:
-        # inputs_ids, attention_mask, attribute_indices
-        self.sentences_of_attributes: List[dict[str, torch.tensor]]
+
+        # Computed on the begining of each epoch
+        self.non_contextualized: torch.tensor
 
     def on_train_epoch_start(self) -> None:
 
@@ -81,25 +81,40 @@ class MLMDebias(LightningModule):
 
                 assert outputs.shape[0] == attribute_ids.shape[0]
 
-                non_contextualized_acc[attribute_ids] += outputs
-                non_contextualized_cntr[attribute_ids] += 1
-            
-            non_contextualized = non_contextualized_acc / non_contextualized_cntr
+                # Ups, this won't work if values of attribute_ids are not distinct 🤷🏼‍♂️
+                # non_contextualized_acc[attribute_ids] += outputs
+                # non_contextualized_cntr[attribute_ids] += 1
 
+                # A quick workaround:
+                for attr_id, out in zip(attribute_ids, outputs):
+
+                    non_contextualized_acc[attr_id] += out
+                    non_contextualized_cntr[attr_id] += 1
+                
+            self.non_contextualized = non_contextualized_acc / non_contextualized_cntr
+            self.non_contextualized.requires_grad_(False)
 
     def forward(self, inputs, return_word_embs=False):
         return self.model(inputs, return_word_embs)
 
+    def loss(self, attributes, targets):
+        attr = attributes.T               # (768, #attrs)
+        trgt = targets.reshape((-1, 768))  # (bsz*128, 768)
+
+        dot = torch.mm(trgt, attr)
+        pow = torch.pow(dot, 2)
+
+        return pow.sum()
+
     def training_step(self, batch: Any, batch_idx: int):
-        # TODO: take care of types. Sentence must me a List[str], is a tuple
-        # Possibly the solution would be to fix the dataset class return type
-        sentences_with_targets = batch
-        # sentences_of_attributes = self.sentences_of_attributes()
-        y = self(sentences_with_targets)
-        print(y.shape)
 
+        targets = self(batch)
+        attributes = self.non_contextualized
 
-        loss = None  # TODO
+        loss = self.loss(attributes=attributes, targets=targets)
+
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True)
+
         return loss
 
     def training_epoch_end(self, outputs: List[Any]):
