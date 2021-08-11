@@ -21,7 +21,7 @@ class Pipeline(nn.Module):
         """
         super().__init__()
 
-        self.embeddings_from = embedding_layer
+        self.embedding_layer = embedding_layer
         
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
@@ -29,17 +29,17 @@ class Pipeline(nn.Module):
         # take care whether it really sets model in train/eval/gpt etc 
         # self.add_module(f'custom-{model_name}', self.model)
 
-    def get_embeddings(self, outputs) -> torch.tensor:
-        if self.embedding_layer == 'CLS':
+    def get_embeddings(self, outputs, embedding_layer) -> torch.tensor:
+        if embedding_layer == 'CLS':
             return outputs.last_hidden_state[:, 0, :]
         
-        if self.embedding_layer == 'first':
+        if embedding_layer == 'first':
             return outputs.hidden_states[0]
 
-        if self.embedding_layer == 'last':
+        if embedding_layer == 'last':
             return outputs.hidden_states[-1]
         
-        if self.embedding_layer == 'all':
+        if embedding_layer == 'all':
             return outputs.hidden_states  #  concat maybe?
         
         raise NotImplementedError()
@@ -66,6 +66,9 @@ class Pipeline(nn.Module):
 
         y = x * mask.reshape(mask_size)
         return y
+
+    def dim(self):
+        return self.model.config.hidden_size
 
     def get_word_embeddings(
             self, x: torch.tensor, mask: torch.tensor
@@ -96,7 +99,7 @@ class Pipeline(nn.Module):
         # Eventually, we get the average of non-zero sub-tokens
         return subtoken_sum / number_non_zer_embs
 
-    def forward(self, sentences, return_word_embs=False) -> torch.tensor:
+    def forward(self, sentences, return_word_embs=False, embedding_layer=None) -> torch.tensor:
         # TODO: change sentences type to tokenized stuff
         outputs = self.model(
             sentences['input_ids'],
@@ -105,7 +108,8 @@ class Pipeline(nn.Module):
         )
 
         # Choose where to get embeddings from (first, last, all layers...)
-        embeddings = self.get_embeddings(outputs)
+        embedding_layer = self.embedding_layer if embedding_layer is None else embedding_layer
+        embeddings = self.get_embeddings(outputs,embedding_layer)
     
         if return_word_embs:
             return self.get_word_embeddings(

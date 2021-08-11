@@ -101,7 +101,7 @@ class AttributesDatasetTest(unittest.TestCase):
                 sample_no += 1
 
     def test_get_word_embeddings(self):
-        pipeline = Pipeline(model_name=self.model_name, embeddings_from='last')
+        pipeline = Pipeline(model_name=self.model_name, embedding_layer='last')
 
         outs = torch.tensor([
             [
