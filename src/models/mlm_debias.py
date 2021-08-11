@@ -37,7 +37,7 @@ class MLMDebias(LightningModule):
     def __init__(
         self,
         model_name: str,
-        get_embeddings_from: str,
+        embedding_layer: str,
         batch_size: int,
         data_dir: str,
         learning_rate: float,
@@ -64,7 +64,7 @@ class MLMDebias(LightningModule):
 
         self.model = Pipeline(
             model_name=model_name,
-            embeddings_from=get_embeddings_from
+            embedding_layer=embedding_layer
         )
 
         self.tokenizer = Tokenizer(model_name)

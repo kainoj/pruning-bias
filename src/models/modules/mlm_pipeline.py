@@ -6,12 +6,12 @@ import torch.nn as nn
 
 class Pipeline(nn.Module):
 
-    def __init__(self, model_name: str, embeddings_from: str='last') -> None:
+    def __init__(self, model_name: str, embedding_layer: str='last') -> None:
         """Wrapper for 🤗's pipeline abstraction with custom embedding getter.
 
         Args:
             model_name: e.g.: `distilbert-base-uncased`
-            embeddings_from: from where to get the embeddings?
+            embedding_layer: from where to get the embeddings?
                 Available: CLS|first|last|all 
                 'CLS': sentence representation as embedding of [CLS] token
                  (taken at the last hidden state)
@@ -21,25 +21,25 @@ class Pipeline(nn.Module):
         """
         super().__init__()
 
-        self.embeddings_from = embeddings_from
+        self.embeddings_from = embedding_layer
         
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
         
         # take care whether it really sets model in train/eval/gpt etc 
-        self.add_module(f'custom-{model_name}', self.model)
+        # self.add_module(f'custom-{model_name}', self.model)
 
     def get_embeddings(self, outputs) -> torch.tensor:
-        if self.embeddings_from == 'CLS':
+        if self.embedding_layer == 'CLS':
             return outputs.last_hidden_state[:, 0, :]
         
-        if self.embeddings_from == 'first':
+        if self.embedding_layer == 'first':
             return outputs.hidden_states[0]
 
-        if self.embeddings_from == 'last':
+        if self.embedding_layer == 'last':
             return outputs.hidden_states[-1]
         
-        if self.embeddings_from == 'all':
+        if self.embedding_layer == 'all':
             return outputs.hidden_states  #  concat maybe?
         
         raise NotImplementedError()

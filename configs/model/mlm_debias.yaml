@@ -1,7 +1,7 @@
 _target_: src.models.mlm_debias.MLMDebias
 
 model_name: 'distilbert-base-uncased'
-get_embeddings_from: 'last'
+embedding_layer: 'last'
 batch_size: 4  # TODO
 data_dir: ${data_dir}
 
