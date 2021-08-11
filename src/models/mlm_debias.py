@@ -56,6 +56,7 @@ class MLMDebias(LightningModule):
         )
 
         self.tokenizer = Tokenizer(model_name)
+        self.model_name = model_name
 
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor
@@ -94,6 +95,11 @@ class MLMDebias(LightningModule):
                 
             self.non_contextualized = non_contextualized_acc / non_contextualized_cntr
             self.non_contextualized.requires_grad_(False)
+
+            print(non_contextualized_cntr)
+            print("non context acc ", torch.any(non_contextualized_acc.isnan()))
+            print("non context cnt ", torch.any(non_contextualized_cntr.isnan()))
+            print("non_context ", torch.any(self.non_contextualized.isnan()))
 
     def forward(self, inputs, return_word_embs=False):
         return self.model(inputs, return_word_embs)
@@ -141,7 +147,8 @@ class MLMDebias(LightningModule):
                 rawdata_path=self.rawdata_path,
                 male_attr_path=self.male_attributes_filepath,
                 female_attr_path=self.female_attributes_filepath,
-                stereo_attr_path=self.stereotypes_filepath
+                stereo_attr_path=self.stereotypes_filepath,
+                tokenizer=self.model_name
             )
             with open(str(self.cached_data_path), 'wb') as f:
                 pickle.dump(data, f)

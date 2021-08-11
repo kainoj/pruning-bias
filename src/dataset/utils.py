@@ -1,6 +1,8 @@
 from typing import Any
 from pathlib import Path
-from collections import defaultdict 
+from collections import defaultdict
+from transformers import AutoTokenizer
+from tqdm import tqdm
 
 import regex as re
 
@@ -21,7 +23,8 @@ def extract_data(
     rawdata_path: Path,
     male_attr_path: Path,
     female_attr_path: Path,
-    stereo_attr_path: Path
+    stereo_attr_path: Path,
+    model_name: str
 ) -> Any: # TODO type
     # TODO: refactor names so it's clear what's attribute and what's target
     # Get lists of attributes
@@ -42,13 +45,21 @@ def extract_data(
     # Dictionary mapping attributes to sentences containing that attributes
     attr2sents = defaultdict(list)
 
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+
     with open(rawdata_path) as f:
-        for full_line in f.readlines():
+        for full_line in tqdm(f.readlines()):
 
             line = full_line.strip()
 
-            # This is how they decied to filter out data in the paper
-            if len(line) < 1 or len(line.split()) > 128 or len(line.split()) <= 1:
+            # # This is how they decied to filter out data in the paper
+            # if len(line) < 1 or len(line.split()) > 128 or len(line.split()) <= 1:
+            #     continue
+
+            # By filtering this way, we would loose only 13 samples, but then
+            # we can set tokenizer max_len to 128 (faster!)
+            # TODO: verify numbers for different tokenizers!
+            if len(tokenizer(line)['input_ids']) > 128:
                 continue
 
             line_tokenized = {token.strip().lower() for token in re.findall(pat, line)}
@@ -84,6 +95,8 @@ def extract_data(
 
                 for s in stereo:
                     attr2sents[s].append(line)
+
+    print("M/F/S", len(male_sents), len(female_sents), len(stereo_sents))
 
     return {
         'male_sents': male_sents, 'male_sents_attr': male_sents_attr,
