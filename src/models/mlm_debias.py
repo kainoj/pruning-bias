@@ -17,8 +17,9 @@ from src.utils.utils import get_logger
 from src.utils.data_io import download_and_un_gzip
 from src.models.modules.mlm_pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
+from src.metrics.seat import SEAT6, SEAT7, SEAT8
 
-from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import AdamW, get_linear_schedule_with_warmup, AutoModel, AutoTokenizer
 
 log = get_logger(__name__)
 
@@ -46,7 +47,6 @@ class MLMDebias(LightningModule):
         warmup_steps: int
     ) -> None:
         super().__init__()
-        self.save_hyperparameters()
 
         self.model_name = model_name
         self.batch_size = batch_size
@@ -71,9 +71,31 @@ class MLMDebias(LightningModule):
 
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor
+    
+        print("constructor")
+        self.get_seat_scores()
+
+    def get_seat_scores(self) -> None:
+        
+        def embbedder_fn(sentence):
+            with torch.no_grad():
+                tknzd = self.tokenizer(sentence).to(self.device)
+                return self.model(tknzd, embedding_layer='CLS')
+
+        seat_metrics = {"SEAT6": SEAT6(), "SEAT7": SEAT7(), "SEAT8": SEAT8()}
+
+        for name in seat_metrics:
+            value = seat_metrics[name](embbedder_fn)
+            print(f'{name}: {value}')
+        
+
+    # def on_train_start(self) -> None:
+    #     self.get_seat_scores()
 
     def on_train_epoch_start(self) -> None:
 
+        self.get_seat_scores()
+        
         log.info(f'Computing non-contextualized embeddings of'
                  f' {len(self.attributes_data.attributes)} attributes on'
                  f' {len(self.attributes_data.sentences)} sentences.')
