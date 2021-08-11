@@ -96,8 +96,6 @@ def extract_data(
                 for s in stereo:
                     attr2sents[s].append(line)
 
-    print("M/F/S", len(male_sents), len(female_sents), len(stereo_sents))
-
     return {
         'male_sents': male_sents, 'male_sents_attr': male_sents_attr,
         'female_sents': female_sents, 'female_sents_attr': female_sents_attr,
