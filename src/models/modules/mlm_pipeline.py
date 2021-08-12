@@ -23,11 +23,7 @@ class Pipeline(nn.Module):
 
         self.embedding_layer = embedding_layer
         
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
-        
-        # take care whether it really sets model in train/eval/gpt etc 
-        # self.add_module(f'custom-{model_name}', self.model)
 
     def get_embeddings(self, outputs, embedding_layer) -> torch.tensor:
         if embedding_layer == 'CLS':
