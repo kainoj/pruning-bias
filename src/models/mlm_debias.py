@@ -42,7 +42,9 @@ class MLMDebias(LightningModule):
         learning_rate: float,
         weight_decay: float,
         adam_eps: float,
-        warmup_steps: int
+        warmup_steps: int,
+        loss_alpha: float,
+        loss_beta:  float
     ) -> None:
         super().__init__()
 
@@ -53,6 +55,8 @@ class MLMDebias(LightningModule):
         self.weight_decay = weight_decay
         self.adam_eps = adam_eps
         self.warmup_steps = warmup_steps
+        self.loss_alpha = loss_alpha
+        self.loss_beta = loss_beta
 
         # Path to raw dataset, in format: /data/dir/news-commentary-v15.en.txt
         self.rawdata_path = (self.data_dir / Path(self.news_data_url).name).with_suffix('.txt')
@@ -109,23 +113,44 @@ class MLMDebias(LightningModule):
     def forward(self, inputs, return_word_embs=False):
         return self.model(inputs, return_word_embs)
 
-    def loss(self, attributes, targets):
-        attr = attributes.T               # (768, #attrs)
-        trgt = targets.reshape((-1, 768))  # (bsz*128, 768)
+    def loss_debias(self, attributes, targets):
+        """Loss for debiasing (inner product), Eq.(1)
 
-        dot = torch.mm(trgt, attr)
-        pow = torch.pow(dot, 2)
-        # Probably I want sum losses across one dim and average among another
-        return pow.sum()
+        Args:
+            attributes: NON-CONTEXTUALIZED embeddings of attributes that were
+                precomputed at the beginning of the epoch
+            targets: contextualized embeddigs of targets of current batch
+        """
+        attr = attributes.T                # (768, #attrs)
+        trgt = targets.reshape((-1, 768))  # (bsz*128, 768) # TODO get the dim
+
+        dot = torch.mm(trgt, attr) ** 2
+        
+        # Sum across rows,then take mean
+        return dot.sum(1).mean()
+
+    def loss_regularize(self, attributes, targets):
+        """Loss for regularization (L2), Eq.(3)
+        
+        Args:
+            attributes: CONTEXTUALIZED embeddings of attributes of current batch
+            targets: contextualized embeddigs of targets of current batch
+        """
+        return 1
 
     def training_step(self, batch: Any, batch_idx: int):
 
-        targets = self(batch)
+        targets = self(batch["targets"])
         attributes = self.non_contextualized
 
-        loss = self.loss(attributes=attributes, targets=targets)
+        loss_debias = self.loss_debias(attributes=attributes, targets=targets)
+        loss_regularize = self.loss_regularize(attributes=None, targets=None)  # TODO
 
-        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True)
+        loss = self.loss_alpha * loss_debias + self.loss_beta * loss_regularize
+
+        self.log("train/loss/debias", loss_debias, prog_bar=False, on_step=True, on_epoch=True)
+        self.log("train/loss/regularize", loss_regularize, prog_bar=False, on_step=True, on_epoch=True)
+        self.log("train/loss/joint", loss_regularize, prog_bar=True, on_step=True, on_epoch=True)
 
         return loss
 
@@ -168,10 +193,7 @@ class MLMDebias(LightningModule):
             num_training_steps=total_train_steps
         )
 
-        return {
-            "optimizer": optimizer,
-            "lr_scheduler": scheduler
-        }
+        return {"optimizer": optimizer, "lr_scheduler": scheduler}
     
     def prepare_data(self):
         # Download and unzip the News dataset
@@ -238,15 +260,18 @@ class MLMDebias(LightningModule):
         # val_attr = [*m_val_attr, *f_val_attr, *s_val_attr]
 
     def train_dataloader(self):
-        return DataLoader(
+        # TODO: what about num workers?
+        targets = DataLoader(
             dataset=self.data_train,
             batch_size=self.batch_size,
-            # We don't really need workers for in-mem data-right?
-            # num_workers=self.num_workers,
-            # pin_memory=self.pin_memory,
-            # collate_fn=lambda x: x,
-            shuffle=True,
+            shuffle=True
         )
+        attributes = DataLoader(
+            dataset=self.attributes_data,
+            batch_size=self.batch_size,
+            shuffle=True
+        )
+        return {"targets": targets, "attributes": attributes}
 
     def val_dataloader(self):
         return DataLoader(

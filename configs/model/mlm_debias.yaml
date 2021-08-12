@@ -10,3 +10,6 @@ weight_decay: 0.0
 learning_rate: 5e-5
 adam_eps: 1e-8
 warmup_steps: 0
+
+loss_alpha: 0.2
+loss_beta: 0.8
