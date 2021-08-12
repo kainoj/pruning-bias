@@ -142,9 +142,7 @@ class MLMDebias(LightningModule):
     def loss_regularize(self, attributes, attributes_original):
         """Loss for regularization (L2), Eq.(3)
         
-        Args:
-            attributes: CONTEXTUALIZED embeddings of attributes of current batch
-            attributes_original: CONTEXTUALIZED embeddings of attributes of current batch, using original model
+        Args: contextualied embeddings of attributes, wrt to debiased and original model
         """
         return 1
 
@@ -161,7 +159,7 @@ class MLMDebias(LightningModule):
 
         self.log("train/loss/debias", loss_debias, prog_bar=False, on_step=True, on_epoch=True)
         self.log("train/loss/regularize", loss_regularize, prog_bar=False, on_step=True, on_epoch=True)
-        self.log("train/loss/joint", loss, prog_bar=True, on_step=True, on_epoch=True)
+        self.log("train/loss", loss, prog_bar=True, on_step=True, on_epoch=True)
 
         return loss
 
