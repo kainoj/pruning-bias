@@ -64,9 +64,13 @@ class MLMDebias(LightningModule):
         # Path to cached data (lists of attributes)
         self.cached_data_path = self.data_dir / self.cached_data
 
-        self.model = Pipeline(
+        self.model_debias = Pipeline(
             model_name=model_name,
             embedding_layer=embedding_layer
+        )
+        self.model_original = Pipeline(
+            model_name=model_name,
+            embedding_layer='all'
         )
 
         self.tokenizer = Tokenizer(model_name)
@@ -111,17 +115,23 @@ class MLMDebias(LightningModule):
             self.non_contextualized.requires_grad_(False)
 
     def forward(self, inputs, return_word_embs=False):
-        return self.model(inputs, return_word_embs)
+        """Forward pass of the models to be debiased."""
+        return self.model_debias(inputs, return_word_embs)
 
-    def loss_debias(self, attributes, targets):
+    def forward_original(self, inputs, return_word_embs=False):
+        """Forward pass of the original model (frozen)."""
+        with torch.no_grad():
+            return self.model_original(inputs,  return_word_embs)
+
+    def loss_debias(self, static_attributes, targets):
         """Loss for debiasing (inner product), Eq.(1)
 
         Args:
-            attributes: NON-CONTEXTUALIZED embeddings of attributes that were
-                precomputed at the beginning of the epoch
+            attributes: NON-CONTEXTUALIZED (aka static) embeddings of attributes 
+                that were precomputed at the beginning of the epoch
             targets: contextualized embeddigs of targets of current batch
         """
-        attr = attributes.T                # (768, #attrs)
+        attr = static_attributes.T                # (768, #attrs)
         trgt = targets.reshape((-1, 768))  # (bsz*128, 768) # TODO get the dim
 
         dot = torch.mm(trgt, attr) ** 2
@@ -129,28 +139,29 @@ class MLMDebias(LightningModule):
         # Sum across rows,then take mean
         return dot.sum(1).mean()
 
-    def loss_regularize(self, attributes, targets):
+    def loss_regularize(self, attributes, attributes_original):
         """Loss for regularization (L2), Eq.(3)
         
         Args:
             attributes: CONTEXTUALIZED embeddings of attributes of current batch
-            targets: contextualized embeddigs of targets of current batch
+            attributes_original: CONTEXTUALIZED embeddings of attributes of current batch, using original model
         """
         return 1
 
     def training_step(self, batch: Any, batch_idx: int):
 
         targets = self(batch["targets"])
-        attributes = self.non_contextualized
+        attributes = self(batch['attributes'])
+        attributes_original = self.forward(batch['attributes'])
 
-        loss_debias = self.loss_debias(attributes=attributes, targets=targets)
-        loss_regularize = self.loss_regularize(attributes=None, targets=None)  # TODO
+        loss_debias = self.loss_debias(static_attributes=self.non_contextualized, targets=targets)
+        loss_regularize = self.loss_regularize(attributes=attributes, attributes_original=attributes_original)
 
         loss = self.loss_alpha * loss_debias + self.loss_beta * loss_regularize
 
         self.log("train/loss/debias", loss_debias, prog_bar=False, on_step=True, on_epoch=True)
         self.log("train/loss/regularize", loss_regularize, prog_bar=False, on_step=True, on_epoch=True)
-        self.log("train/loss/joint", loss_regularize, prog_bar=True, on_step=True, on_epoch=True)
+        self.log("train/loss/joint", loss, prog_bar=True, on_step=True, on_epoch=True)
 
         return loss
 
@@ -173,11 +184,11 @@ class MLMDebias(LightningModule):
         # These parameters are copied from the original code
         optimizer_grouped_parameters = [
         {
-            "params": [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
+            "params": [p for n, p in self.model_debias.named_parameters() if not any(nd in n for nd in no_decay)],
             "weight_decay": self.weight_decay,
         },
         {
-            "params": [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
+            "params": [p for n, p in self.model_debias.named_parameters() if any(nd in n for nd in no_decay)],
             "weight_decay": 0.0
         }]
 
