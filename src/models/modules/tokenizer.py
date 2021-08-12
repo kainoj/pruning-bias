@@ -20,3 +20,6 @@ class Tokenizer():
             max_length=128,
             return_tensors="pt"
         )
+
+    def decode(self, x):
+        return self._tokenizer.decode(x)

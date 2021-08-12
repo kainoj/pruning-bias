@@ -1,12 +1,10 @@
-from os import pipe
 import unittest
 import torch
 
-from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
 from src.dataset.attributes_dataset import AttributesWithSentecesDataset
 from src.models.modules.mlm_pipeline import Pipeline
-
+from src.models.modules.tokenizer import Tokenizer
 
 # From project root dir:
 # python -m unittest
@@ -24,7 +22,7 @@ class AttributesDatasetTest(unittest.TestCase):
         ]
 
         self.model_name = 'distilbert-base-uncased'
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.tokenizer = Tokenizer(self.model_name)
 
         self.ds = AttributesWithSentecesDataset(
             attributes=attributes,
@@ -62,7 +60,7 @@ class AttributesDatasetTest(unittest.TestCase):
         3. In outputs, find non-zeroed embeddings (their positions)
         4. And check whether these embeddings correnspond to tokens in the mask
         """
-        pipeline = Pipeline(model_name=self.model_name, embeddings_from='last')
+        pipeline = Pipeline(model_name=self.model_name, embedding_layer='last')
 
         dl = DataLoader(dataset=self.ds, batch_size=2, shuffle=False)
 
