@@ -5,7 +5,6 @@ import torch
 from pytorch_lightning import LightningModule
 
 from pathlib import Path
-from torch.autograd.grad_mode import no_grad
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
@@ -17,9 +16,8 @@ from src.utils.utils import get_logger
 from src.utils.data_io import download_and_un_gzip
 from src.models.modules.mlm_pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
-from src.metrics.seat import SEAT6, SEAT7, SEAT8
 
-from transformers import AdamW, get_linear_schedule_with_warmup, AutoModel, AutoTokenizer
+from transformers import AdamW, get_linear_schedule_with_warmup
 
 log = get_logger(__name__)
 
@@ -71,31 +69,10 @@ class MLMDebias(LightningModule):
 
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor
-    
-        print("constructor")
-        self.get_seat_scores()
 
-    def get_seat_scores(self) -> None:
-        
-        def embbedder_fn(sentence):
-            with torch.no_grad():
-                tknzd = self.tokenizer(sentence).to(self.device)
-                return self.model(tknzd, embedding_layer='CLS')
-
-        seat_metrics = {"SEAT6": SEAT6(), "SEAT7": SEAT7(), "SEAT8": SEAT8()}
-
-        for name in seat_metrics:
-            value = seat_metrics[name](embbedder_fn)
-            print(f'{name}: {value}')
-        
-
-    # def on_train_start(self) -> None:
-    #     self.get_seat_scores()
 
     def on_train_epoch_start(self) -> None:
 
-        self.get_seat_scores()
-        
         log.info(f'Computing non-contextualized embeddings of'
                  f' {len(self.attributes_data.attributes)} attributes on'
                  f' {len(self.attributes_data.sentences)} sentences.')
@@ -138,7 +115,7 @@ class MLMDebias(LightningModule):
 
         dot = torch.mm(trgt, attr)
         pow = torch.pow(dot, 2)
-
+        # Probably I want sum losses across one dim and average among another
         return pow.sum()
 
     def training_step(self, batch: Any, batch_idx: int):
@@ -162,7 +139,6 @@ class MLMDebias(LightningModule):
         pass
 
     def configure_optimizers(self):
-
         train_batches = len(self.train_dataloader()) // self.trainer.gpus
         total_epochs = self.trainer.max_epochs - self.trainer.min_epochs + 1
         total_train_steps = (total_epochs * train_batches) // self.trainer.accumulate_grad_batches
