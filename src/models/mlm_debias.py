@@ -194,7 +194,8 @@ class MLMDebias(LightningModule):
         # Get the SEAT
         target_x, target_y, attribute_a, attribute_b = batch
         self.seat_metric.update(
-            self(target_x), self(target_y), self(attribute_a), self(attribute_b)
+            self(target_x, embedding_layer='CLS'), self(target_y, embedding_layer='CLS'),
+            self(attribute_a, embedding_layer='CLS'), self(attribute_b, embedding_layer='CLS')
         )
 
     def validation_epoch_end(self, outputs: List[Any]):
@@ -331,7 +332,7 @@ class MLMDebias(LightningModule):
         """For now, returns only data for SEAT6"""
         return DataLoader(
             dataset=self.seat6_dataset,
-            batch_size=self.batch_size,
+            batch_size=1,
             shuffle=False,
         )
 
