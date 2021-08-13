@@ -12,8 +12,8 @@ class WEAT(Metric):
 
     Ref.: https://www.cs.bath.ac.uk/~jjb/ftp/CaliskanEtAl-authors-full.pdf
     """
-    def __init__(self, dist_sync_on_step=False):
-        super().__init__(dist_sync_on_step=dist_sync_on_step)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # The following should store *embeddigs* of targets and attributes.
         self.add_state("target_x", default=[], dist_reduce_fx="cat")
