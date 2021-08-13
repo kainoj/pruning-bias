@@ -114,14 +114,18 @@ class MLMDebias(LightningModule):
             self.non_contextualized = non_contextualized_acc / non_contextualized_cntr
             self.non_contextualized.requires_grad_(False)
 
-    def forward(self, inputs, return_word_embs=False):
+    def forward(
+        self, inputs, return_word_embs=False, embedding_layer=None
+    ):
         """Forward pass of the models to be debiased."""
-        return self.model_debias(inputs, return_word_embs)
+        return self.model_debias(inputs, return_word_embs, embedding_layer)
 
-    def forward_original(self, inputs, return_word_embs=False):
+    def forward_original(
+        self, inputs, return_word_embs=False, embedding_layer=None
+    ):
         """Forward pass of the original model (frozen)."""
         with torch.no_grad():
-            return self.model_original(inputs,  return_word_embs)
+            return self.model_original(inputs, return_word_embs, embedding_layer)
 
     def loss_debias(self, static_attributes, targets):
         """Loss for debiasing (inner product), Eq.(1)
@@ -142,15 +146,19 @@ class MLMDebias(LightningModule):
     def loss_regularize(self, attributes, attributes_original):
         """Loss for regularization (L2), Eq.(3)
         
-        Args: contextualied embeddings of attributes, wrt to debiased and original model
+        Args: contextualied embeddings of attributes, wrt to debiased
+            and original model, respectively. Both are of shape:
+                (batch_sz * n, emb_dim), where
+            n = num_layers if embedding_layer=='all' else 1.
         """
-        return 1
+        assert attributes.shape == attributes_original.shape
+        return ((attributes - attributes_original) ** 2).sum(1).mean()
 
     def training_step(self, batch: Any, batch_idx: int):
 
         targets = self(batch["targets"])
-        attributes = self(batch['attributes'], return_word_embs=True)
-        attributes_original = self.forward_original(batch['attributes'], return_word_embs=True)
+        attributes = self(batch['attributes'], return_word_embs=True, embedding_layer='all')
+        attributes_original = self.forward_original(batch['attributes'], return_word_embs=True, embedding_layer='all')
 
         loss_debias = self.loss_debias(static_attributes=self.non_contextualized, targets=targets)
         loss_regularize = self.loss_regularize(attributes=attributes, attributes_original=attributes_original)
