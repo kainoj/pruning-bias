@@ -38,9 +38,12 @@ class MLMDebias(LightningModule):
     cached_data = 'attributes_dataset.obj'
 
     # Data for SEAT 6/7/8 metrics. TODO: get relative paths
-    seat6_data = '/home/przm/bs/data/sent-weat6.jsonl'
-    seat7_data = '/home/przm/bs/data/sent-weat7.jsonl'
-    seat8_data = '/home/przm/bs/data/sent-weat8.jsonl'
+    seat_data = {
+        "SEAT6": '/home/przm/bs/data/sent-weat6.jsonl',
+        "SEAT7": '/home/przm/bs/data/sent-weat7.jsonl',
+        "SEAT8": '/home/przm/bs/data/sent-weat8.jsonl',
+    }
+    seat_dataset_map = {i: name for i, name in enumerate(seat_data.keys())}
 
     def __init__(
         self,
@@ -84,7 +87,8 @@ class MLMDebias(LightningModule):
 
         self.tokenizer = Tokenizer(model_name)
 
-        self.seat_metric = SEAT()
+        # Create a metric for each of provided datasets
+        self.seat_metric = {name: SEAT() for name in self.seat_data.keys()}
 
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor
@@ -190,19 +194,25 @@ class MLMDebias(LightningModule):
     def training_epoch_end(self, outputs: List[Any]):
         pass
 
-    def validation_step(self, batch: Any, batch_idx: int):
+    def validation_step(self, batch: Any, batch_idx: int, dataset_idx: int):
         # Get the SEAT
+        seat_name = self.seat_dataset_map[dataset_idx]
+
         target_x, target_y, attribute_a, attribute_b = batch
-        self.seat_metric.update(
+        self.seat_metric[seat_name].update(
             self(target_x, embedding_layer='CLS'),
             self(target_y, embedding_layer='CLS'),
             self(attribute_a, embedding_layer='CLS'),
             self(attribute_b, embedding_layer='CLS'),
         )
+        return 42
 
     def validation_epoch_end(self, outputs: List[Any]):
-        sss = self.seat_metric.compute()
-        log.info(f"SEAT: {sss}")
+        for seat_name in self.seat_data.keys():
+            seat_value = self.seat_metric[seat_name].compute()
+            self.seat_metric[seat_name].reset()
+
+            self.log(f"validation/{seat_name}", seat_value)
 
     def configure_optimizers(self):
         train_batches = len(self.train_dataloader()) // self.trainer.gpus
@@ -308,7 +318,11 @@ class MLMDebias(LightningModule):
         )
 
         # TODO: rename it whatever
-        self.seat6_dataset = WeatDataset(data_filename=self.seat6_data, tokenizer=self.tokenizer)
+        self.seat_datasets = {
+            name: WeatDataset(data_filename=path, tokenizer=self.tokenizer)
+            for name, path in self.seat_data.items()
+        }
+
         # Merge splitted M/F/S data into one
         # train_text = [*m_train_sents, *f_train_sents, *s_train_sents]
         # val_text = [*m_val_sents, *f_val_sents, *s_val_sents]
@@ -331,12 +345,14 @@ class MLMDebias(LightningModule):
         return {"targets": targets, "attributes": attributes}
 
     def val_dataloader(self):
-        """For now, returns only data for SEAT6"""
-        return DataLoader(
-            dataset=self.seat6_dataset,
-            batch_size=1,
-            shuffle=False,
-        )
+        """For now, returns only data for SEAT6
+
+        It passes batches sequentally.
+        https://pytorch-lightning.readthedocs.io/en/latest/guides/data.html#multiple-validation-test-datasets
+        """
+        return [
+            DataLoader(ds, batch_size=1, shuffle=False) for ds in self.seat_datasets.values()
+        ]
 
     def attributes_dataloader(self):
         return DataLoader(
