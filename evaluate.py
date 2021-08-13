@@ -1,36 +1,56 @@
 import hydra
 import torch
+
 from omegaconf import DictConfig
+from torch.utils.data import DataLoader
 
 from src.models.modules.mlm_pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
+from src.dataset.weat_dataset import WeatDataset
 
 
 @hydra.main(config_path="configs", config_name="eval")
 def evaluate(cfg: DictConfig) -> None:
-    from src.metrics.seat import SEAT6, SEAT7, SEAT8
+    from src.metrics.seat import SEAT
 
-    seat_metrics = {"SEAT6": SEAT6(), "SEAT7": SEAT7(), "SEAT8": SEAT8()}
-    device = 'cuda:0'  # move to config
+    seat_data = {
+        "SEAT6": '/home/przm/bs/data/sent-weat6.jsonl',
+        "SEAT7": '/home/przm/bs/data/sent-weat7.jsonl',
+        "SEAT8": '/home/przm/bs/data/sent-weat8.jsonl',
+    }
+
+    device = cfg.device
 
     for model_name in cfg.models:
         print(f"Evaluating: '{model_name}'")
 
-        pipeline = Pipeline(model_name, embedding_layer='last').to(device)
+        model = Pipeline(model_name, embedding_layer='CLS').to(device)
         tokenizer = Tokenizer(model_name)
 
-        # A quick workaround, we need something callable
-        #   which takes str and returns an embedding.
-        def embbedder_fn(sentence):
-            with torch.no_grad():
-                tknzd = tokenizer(sentence).to(device)
-                return pipeline(tknzd, embedding_layer='CLS')
+        for seat, datapath in seat_data.items():
 
-        embedder = embbedder_fn
+            metric = SEAT()
+            dataloader = DataLoader(
+                WeatDataset(datapath, tokenizer),
+                batch_size=1,
+                shuffle=False
+            )
 
-        for name in seat_metrics:
-            value = seat_metrics[name](embedder)
-            print(f"{name}: {value}")
+            for sample in dataloader:
+                # nasty
+                sample = [{key: val.to(device) for key, val in s.items()} for s in sample]
+
+                with torch.no_grad():
+                    x = model(sample[0])
+                    y = model(sample[1])
+                    a = model(sample[2])
+                    b = model(sample[3])
+
+                metric.update(x, y, a, b)
+
+            seat_value = metric.compute()
+
+            print(f'{seat}: {seat_value}')
 
 
 if __name__ == "__main__":
