@@ -21,20 +21,17 @@ class WEAT(Metric):
         self.add_state("attribute_a", default=[], dist_reduce_fx="cat")
         self.add_state("attribute_b", default=[], dist_reduce_fx="cat")
 
-    def _extract_legit_items(self, x, is_legit):
-        return torch.masked_select(x, is_legit)
-
     def update(
         self,
-        target_x: torch.tensor, x_is_legit: torch.tensor,
-        target_y: torch.tensor, y_is_legit: torch.tensor,
-        attribute_a: torch.tensor, a_is_legit: torch.tensor,
-        attribute_b: torch.tensor, b_is_legit: torch.tensor,
+        target_x: torch.tensor,
+        target_y: torch.tensor,
+        attribute_a: torch.tensor,
+        attribute_b: torch.tensor,
     ) -> None:
-        self.target_x.append(target_x[x_is_legit])
-        self.target_y.append(target_y[y_is_legit])
-        self.attribute_a.append(attribute_a[a_is_legit])
-        self.attribute_b.append(attribute_b[b_is_legit])
+        self.target_x.append(target_x)
+        self.target_y.append(target_y)
+        self.attribute_a.append(attribute_a)
+        self.attribute_b.append(attribute_b)
 
     def compute(self) -> float:
         """Computes WEAT effect size.
@@ -54,7 +51,7 @@ class WEAT(Metric):
         attribute_a: torch.tensor,
         attribute_b: torch.tensor
     ) -> float:
-        """Differencial association of a word `w` with sets of attributes."""
+        """Differential association of a word `w` with sets of attributes."""
 
         _w = w.unsqueeze(0)
         assoc_a = nn.CosineSimilarity(dim=1)(_w, attribute_a)

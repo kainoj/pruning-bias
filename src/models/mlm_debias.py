@@ -194,10 +194,10 @@ class MLMDebias(LightningModule):
         # Get the SEAT
         target_x, target_y, attribute_a, attribute_b = batch
         self.seat_metric.update(
-            self(target_x, embedding_layer='CLS'), target_x['is_legit'],
-            self(target_y, embedding_layer='CLS'), target_y['is_legit'],
-            self(attribute_a, embedding_layer='CLS'), attribute_a['is_legit'],
-            self(attribute_b, embedding_layer='CLS'), attribute_b['is_legit']
+            self(target_x, embedding_layer='CLS'),
+            self(target_y, embedding_layer='CLS'),
+            self(attribute_a, embedding_layer='CLS'),
+            self(attribute_b, embedding_layer='CLS'),
         )
 
     def validation_epoch_end(self, outputs: List[Any]):

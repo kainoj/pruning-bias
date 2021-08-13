@@ -1,6 +1,8 @@
 models:
-    # - bert-base-uncased
-    # - roberta-base
-    # - albert-base-v2
+    - bert-base-uncased
+    - roberta-base
+    - albert-base-v2
     - distilbert-base-uncased
-    # - google/electra-small-discriminator
+    - google/electra-small-discriminator
+
+device: cuda:0
