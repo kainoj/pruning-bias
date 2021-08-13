@@ -1,11 +1,9 @@
-import json
-
 import torch
 import torch.nn as nn
-from typing import Callable, List, Tuple
+from torchmetrics import Metric
 
 
-class WEAT():
+class WEAT(Metric):
     """Word Embedding Association Test (WEAT).
 
     Based on:
@@ -14,36 +12,35 @@ class WEAT():
 
     Ref.: https://www.cs.bath.ac.uk/~jjb/ftp/CaliskanEtAl-authors-full.pdf
     """
+    def __init__(self, dist_sync_on_step=False):
+        super().__init__(dist_sync_on_step=dist_sync_on_step)
 
-    def __init__(self, data_filename: str) -> None:
-        """WEAT
+        # The following should store *embeddigs* of targets and attributes.
+        self.add_state("target_x", default=[], dist_reduce_fx="cat")
+        self.add_state("target_y", default=[], dist_reduce_fx="cat")
+        self.add_state("attribute_a", default=[], dist_reduce_fx="cat")
+        self.add_state("attribute_b", default=[], dist_reduce_fx="cat")
 
-        Args:
-            data_filename: path to .jsonl file containing test data.
-        """
-        self.target_x, self.target_y, self.attribute_a, self.attribute_b = \
-            self._get_data(data_filename)
-
-    def _get_data(
+    def update(
         self,
-        data_filename: str
-    ) -> Tuple[List[str], List[str], List[str], List[str]]:
-        """Load data for the WEAT test
+        target_x: torch.tensor,
+        target_y: torch.tensor,
+        attribute_a: torch.tensor,
+        attribute_b: torch.tensor
+    ) -> None:
+        self.target_x.append(target_x)
+        self.target_y.append(target_y)
+        self.attribute_a.append(attribute_a)
+        self.attribute_b.append(attribute_b)
 
-        Args:
-            data_filename: path to .jsonl file containing test data.
+    def compute(self) -> float:
+        """Computes WEAT effect size.
 
-        Retruns: two lists of targets and two lists of attributes.
+        Returns: effect size of WEAT.
         """
-        with open(data_filename) as f:
-            data = json.load(f)
-
-        target_x = data['targ1']['examples']
-        target_y = data['targ2']['examples']
-        attribute_a = data['attr1']['examples']
-        attribute_b = data['attr2']['examples']
-
-        return target_x, target_y, attribute_a, attribute_b
+        return self.effect_size(
+            self.target_x, self.target_y, self.attribute_a, self.attribute_b
+        )
 
     def s_wAB(
         self,
@@ -95,19 +92,3 @@ class WEAT():
         assoc_xy = torch.tensor(assoc_xy)
 
         return (assoc_x.mean() - assoc_y.mean()) / assoc_xy.std()
-
-    def __call__(self, embedder: Callable) -> float:
-        """WEAT effect size.
-
-        Args:
-            embedder: anything that takes a list of sentences (strings)
-                and retruns their embeddigs
-
-        Returns: effect size of WEAT.
-        """
-        x_emb = embedder(self.target_x)
-        y_emb = embedder(self.target_y)
-        a_emb = embedder(self.attribute_a)
-        b_emb = embedder(self.attribute_b)
-
-        return self.effect_size(x_emb, y_emb, a_emb, b_emb)
