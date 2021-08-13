@@ -21,14 +21,14 @@ class AttributesWithSentecesDataset(Dataset):
 
         log.warning("ATTRIBUTES ARE TRIMMEND FOR FASTER DEVELOPMENT")
         """!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
-        attributes = attributes[:8]
-        sentences_of_attributes = sentences_of_attributes[:8]
-        """!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
+        attributes = attributes[:5]
+        sentences_of_attributes = sentences_of_attributes[:5]
         cntr = 0
         for i, a in enumerate(attributes):
             log.info(f'{a} \t: {len(sentences_of_attributes[i])} sentences')
             cntr += len(sentences_of_attributes[i])
         log.info(f'    {cntr} sentences in total')
+        """!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
 
         self.attributes = attributes
         self.tokenizer = tokenizer
