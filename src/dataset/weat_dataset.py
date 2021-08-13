@@ -34,12 +34,18 @@ class WeatDataset(Dataset):
             len(self.attribute_b)
         )
 
+    def tokenize_and_squeeze(self, sentence: str):
+        """Tokenizs a sentece and squeezes tensors (so it batchifies properly.
+        """
+        y = self.tokenizer(sentence)
+        return {key: val.squeeze(0) for key, val in y.items()}
+
     def __getitem__(self, idx):
         return (
-            self.tokenizer(self.target_x[idx]),
-            self.tokenizer(self.target_y[idx]),
-            self.tokenizer(self.attribute_a[idx]),
-            self.tokenizer(self.attribute_b[idx])
+            self.tokenize_and_squeeze(self.target_x[idx]),
+            self.tokenize_and_squeeze(self.target_y[idx]),
+            self.tokenize_and_squeeze(self.attribute_a[idx]),
+            self.tokenize_and_squeeze(self.attribute_b[idx])
         )
 
     def _get_data(self) -> Tuple[List[str], List[str], List[str], List[str]]:
