@@ -9,10 +9,10 @@ from src.models.modules.tokenizer import Tokenizer
 @hydra.main(config_path="configs", config_name="eval")
 def evaluate(cfg: DictConfig) -> None:
     from src.metrics.seat import SEAT6, SEAT7, SEAT8
-    
+
     seat_metrics = {"SEAT6": SEAT6(), "SEAT7": SEAT7(), "SEAT8": SEAT8()}
     device = 'cuda:0'  # move to config
-      
+
     for model_name in cfg.models:
         print(f"Evaluating: '{model_name}'")
 

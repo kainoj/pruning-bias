@@ -5,43 +5,43 @@ import torch.nn as nn
 
 class Pipeline(nn.Module):
 
-    def __init__(self, model_name: str, embedding_layer: str='last') -> None:
+    def __init__(self, model_name: str, embedding_layer: str = 'last') -> None:
         """Wrapper for 🤗's pipeline abstraction with custom embedding getter.
 
         Args:
             model_name: e.g.: `distilbert-base-uncased`
             embedding_layer: from where to get the embeddings?
-                Available: CLS|first|last|all 
+                Available: CLS|first|last|all
                 'CLS': sentence representation as embedding of [CLS] token
                  (taken at the last hidden state)
                 'first':
                 'last':
-                'all': 
+                'all':
         """
         super().__init__()
 
         self.embedding_layer = embedding_layer
-        
+
         self.model = AutoModel.from_pretrained(model_name)
 
     def get_embeddings(self, outputs, embedding_layer) -> torch.tensor:
         if embedding_layer == 'CLS':
             return outputs.last_hidden_state[:, 0, :]
-        
+
         if embedding_layer == 'first':
             return outputs.hidden_states[0]
 
         if embedding_layer == 'last':
             return outputs.hidden_states[-1]
-        
+
         if embedding_layer == 'all':
             return torch.vstack(outputs.hidden_states)
-        
+
         raise NotImplementedError()
 
     def apply_output_mask(
             self, x: torch.tensor, mask: torch.tensor
-        ) -> torch.tensor:
+    ) -> torch.tensor:
         """Extract specific tokens from `x`, defined by a `mask`.
 
         Used, for example, to extract embeddings of specific tokens.
@@ -68,15 +68,15 @@ class Pipeline(nn.Module):
 
     # @property
     # def n_layers(self):
-    #     # TODO: different model uses different var names, 
+    #     # TODO: different model uses different var names,
     #     #    eg. bert: confignum_hidden_layers
     #     return self.model.config.n_layers
 
     def get_word_embeddings(
             self, x: torch.tensor, mask: torch.tensor
-        ) -> torch.tensor:
+    ) -> torch.tensor:
         """Extracts word embeddings from embedded sentence, based on the mask.
-        
+
         'If a word is split into multiple sub-tokens, we compute the
         contextualized embedding of the word by averaging the contextualized
         embeddings of its constituent sub-tokens' (The paper, Section 3).
@@ -102,7 +102,7 @@ class Pipeline(nn.Module):
         number_non_zer_embs = mask.sum(1, keepdim=True)
 
         # Sum of sub-tokens for each batch-sentence
-        subtoken_sum = x_masked.sum(1) 
+        subtoken_sum = x_masked.sum(1)
 
         # Eventually, we get the average of non-zero sub-tokens
         return subtoken_sum / number_non_zer_embs
@@ -111,14 +111,14 @@ class Pipeline(nn.Module):
         # TODO: change sentences type to tokenized stuff
         outputs = self.model(
             sentences['input_ids'],
-            attention_mask=sentences['attention_mask'], 
+            attention_mask=sentences['attention_mask'],
             output_hidden_states=True
         )
 
         # Choose where to get embeddings from (first, last, all layers...)
         embedding_layer = self.embedding_layer if embedding_layer is None else embedding_layer
-        embeddings = self.get_embeddings(outputs,embedding_layer)
-    
+        embeddings = self.get_embeddings(outputs, embedding_layer)
+
         if return_word_embs:
             return self.get_word_embeddings(
                 x=embeddings,

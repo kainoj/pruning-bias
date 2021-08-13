@@ -6,6 +6,7 @@ from src.dataset.attributes_dataset import AttributesWithSentecesDataset
 from src.models.modules.mlm_pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
 
+
 # From project root dir:
 # python -m unittest
 
@@ -32,20 +33,20 @@ class AttributesDatasetTest(unittest.TestCase):
 
     def test_ds_len(self):
         # 4 = total #sentences
-        self.assertEqual(len(self.ds), 4) 
+        self.assertEqual(len(self.ds), 4)
 
     def test_get_item(self):
-        """Get i-th item, extract tokens from the mask and check whether 
+        """Get i-th item, extract tokens from the mask and check whether
         they decode to attributes."""
         # Answers[i] is all attributes in i-th sentence
         answers = ['tokenizer', 'tokenizer', 'pizza pizza', 'pizza']
 
         for ans, data in zip(answers, self.ds):
-           
+
             # Extract tokens only for attributes
             only_attribuets_tokens = torch.masked_select(
                 data['input_ids'],             # Encodings of sentences
-                data['attribute_mask'].bool() # Mask of attributes
+                data['attribute_mask'].bool()  # Mask of attributes
             )
 
             decoded_str = self.tokenizer.decode(only_attribuets_tokens)
@@ -79,8 +80,8 @@ class AttributesDatasetTest(unittest.TestCase):
             )
 
             # Output shape must have not been changed
-            self.assertEqual(outputs.shape, (2, 128, 768)) # bsz, max_len, dim
-    
+            self.assertEqual(outputs.shape, (2, 128, 768))  # bsz, max_len, dim
+
             for sample in outputs:
                 # sample is of shape (128, 768)
                 # Sum elements of all 128 embeddings -> we should get 0 for
@@ -88,10 +89,10 @@ class AttributesDatasetTest(unittest.TestCase):
                 non_zeros_mask = (sample.sum(1) != 0)
 
                 original_tokens = self.ds[sample_no]['input_ids']
-                
+
                 only_attribuets_tokens = torch.masked_select(
-                    original_tokens, # Encodings of sentences
-                    non_zeros_mask   # Mask of attributes
+                    original_tokens,  # Encodings of sentences
+                    non_zeros_mask    # Mask of attributes
                 )
                 decoded_str = self.tokenizer.decode(only_attribuets_tokens)
                 self.assertEqual(decoded_str, answers[sample_no])

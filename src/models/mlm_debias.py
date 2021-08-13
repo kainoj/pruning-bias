@@ -21,6 +21,7 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 
 log = get_logger(__name__)
 
+
 class MLMDebias(LightningModule):
 
     news_data_url = 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'
@@ -78,7 +79,6 @@ class MLMDebias(LightningModule):
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor
 
-
     def on_train_epoch_start(self) -> None:
 
         log.info(f'Computing non-contextualized embeddings of'
@@ -110,7 +110,7 @@ class MLMDebias(LightningModule):
 
                     non_contextualized_acc[attr_id] += out
                     non_contextualized_cntr[attr_id] += 1
-                
+
             self.non_contextualized = non_contextualized_acc / non_contextualized_cntr
             self.non_contextualized.requires_grad_(False)
 
@@ -131,7 +131,7 @@ class MLMDebias(LightningModule):
         """Loss for debiasing (inner product), Eq.(1)
 
         Args:
-            attributes: NON-CONTEXTUALIZED (aka static) embeddings of attributes 
+            attributes: NON-CONTEXTUALIZED (aka static) embeddings of attributes
                 that were precomputed at the beginning of the epoch
             targets: contextualized embeddigs of targets of current batch
         """
@@ -139,13 +139,13 @@ class MLMDebias(LightningModule):
         trgt = targets.reshape((-1, 768))  # (bsz*128, 768) # TODO get the dim
 
         dot = torch.mm(trgt, attr) ** 2
-        
+
         # Sum across rows,then take mean
         return dot.sum(1).mean()
 
     def loss_regularize(self, attributes, attributes_original):
         """Loss for regularization (L2), Eq.(3)
-        
+
         Args: contextualied embeddings of attributes, wrt to debiased
             and original model, respectively. Both are of shape:
                 (batch_sz * n, emb_dim), where
@@ -189,17 +189,18 @@ class MLMDebias(LightningModule):
 
         # These parameters are copied from the original code
         optimizer_grouped_parameters = [
-        {
-            "params": [p for n, p in self.model_debias.named_parameters() if not any(nd in n for nd in no_decay)],
-            "weight_decay": self.weight_decay,
-        },
-        {
-            "params": [p for n, p in self.model_debias.named_parameters() if any(nd in n for nd in no_decay)],
-            "weight_decay": 0.0
-        }]
+            {
+                "params": [p for n, p in self.model_debias.named_parameters() if not any(nd in n for nd in no_decay)],
+                "weight_decay": self.weight_decay,
+            },
+            {
+                "params": [p for n, p in self.model_debias.named_parameters() if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0
+            }
+        ]
 
         optimizer = AdamW(
-            optimizer_grouped_parameters, 
+            optimizer_grouped_parameters,
             lr=self.learning_rate,
             eps=self.adam_eps
         )
@@ -211,7 +212,7 @@ class MLMDebias(LightningModule):
         )
 
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
-    
+
     def prepare_data(self):
         # Download and unzip the News dataset
         download_and_un_gzip(self.news_data_url, self.rawdata_path)

@@ -12,6 +12,7 @@ SEAT is just a WEAT that takes representation of the whole sentence.
 
 cwd = Path(hydra.utils.get_original_cwd())
 
+
 class SEAT6(WEAT):
 
     def __init__(self) -> None:

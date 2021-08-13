@@ -1,6 +1,4 @@
-from typing import Any, Dict, List
-
-import torch
+from typing import List
 
 from torch.utils.data import Dataset
 from src.utils.utils import get_logger
@@ -15,7 +13,7 @@ class SentencesWithTargetsDatset(Dataset):
         sentences: List[str],
         targets_in_sentences: List[set[str]],
         tokenizer
-    ) -> None:  
+    ) -> None:
         super().__init__()
 
         self.sentences = sentences
@@ -24,7 +22,7 @@ class SentencesWithTargetsDatset(Dataset):
 
     def __len__(self):
         return len(self.sentences)
-    
+
     def __getitem__(self, idx):
         sentence = self.sentences[idx]
         # TODO: This is only for sentence-level debiasing

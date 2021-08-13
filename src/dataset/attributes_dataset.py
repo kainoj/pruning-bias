@@ -1,6 +1,4 @@
-from typing import Any, Dict, List
-
-import torch
+from typing import List
 
 from torch.utils.data import Dataset
 from src.utils.utils import get_logger
@@ -16,7 +14,7 @@ class AttributesWithSentecesDataset(Dataset):
         attributes: List[str],
         sentences_of_attributes: List[List[str]],
         tokenizer
-    ) -> None:     
+    ) -> None:
         super().__init__()
 
         log.warning("ATTRIBUTES ARE TRIMMEND FOR FASTER DEVELOPMENT")
@@ -49,7 +47,7 @@ class AttributesWithSentecesDataset(Dataset):
         attr = self.attributes[attr_id]
 
         payload = self.tokenizer(sentence)
-        
+
         # Make sure that every tensor is 1D of shape 'max_length' (so it batchifies properly)
         payload = {key: val.squeeze(0) for key, val in payload.items()}
 
@@ -65,5 +63,5 @@ class AttributesWithSentecesDataset(Dataset):
 
         payload['attribute_mask'] = mask
         payload['attribute_id'] = attr_id
-        
+
         return payload

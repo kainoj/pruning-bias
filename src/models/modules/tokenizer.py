@@ -1,8 +1,9 @@
 from transformers import AutoTokenizer
 
+
 class Tokenizer():
     """An unified wrapper for the tokenier.
-    
+
     Just to make sure that every sentence gets padded to same length.
 
     TODO: wrap it with singleton maybe?

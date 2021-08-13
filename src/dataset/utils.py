@@ -16,7 +16,7 @@ def get_attribute_set(filepath: str) -> set:
     quickfix_path = Path(hydra.utils.get_original_cwd()) / filepath
 
     with open(quickfix_path) as f:
-        return {l.strip() for l in f.readlines()}
+        return {line.strip() for line in f.readlines()}
 
 
 def extract_data(
@@ -25,7 +25,7 @@ def extract_data(
     female_attr_path: Path,
     stereo_attr_path: Path,
     model_name: str
-) -> Any: # TODO type
+) -> Any:
     # TODO: refactor names so it's clear what's attribute and what's target
     # Get lists of attributes
     male_attr = get_attribute_set(male_attr_path)
@@ -63,7 +63,7 @@ def extract_data(
                 continue
 
             line_tokenized = {token.strip().lower() for token in re.findall(pat, line)}
-            
+
             # Dicts containing M/F/S attributes/targets in each sentence
             male = line_tokenized & male_attr
             female = line_tokenized & female_attr
@@ -87,9 +87,9 @@ def extract_data(
 
                 for f in female:
                     attr2sents[f].append(line)
-                
+
             # Sentences with stereotype target
-            if len(stereo) > 0 and len(male) == 0 and len(female) == 0: 
+            if len(stereo) > 0 and len(male) == 0 and len(female) == 0:
                 stereo_sents.append(line)
                 stereo_sents_trgt.append(stereo)
 
