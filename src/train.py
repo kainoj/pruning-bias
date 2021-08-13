@@ -66,6 +66,10 @@ def train(config: DictConfig) -> Optional[float]:
         logger=logger,
     )
 
+    # Get SEAT scores of vanilla model
+    log.info("Starting validation before training")
+    trainer.validate(model=model)
+
     # Train the model
     log.info("Starting training!")
     trainer.fit(model=model)

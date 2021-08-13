@@ -12,10 +12,13 @@ from sklearn.model_selection import train_test_split
 from src.dataset.attributes_dataset import AttributesWithSentecesDataset
 from src.dataset.targets_dataset import SentencesWithTargetsDatset
 from src.dataset.utils import extract_data
+from src.dataset.weat_dataset import WeatDataset
 from src.utils.utils import get_logger
 from src.utils.data_io import download_and_un_gzip
 from src.models.modules.mlm_pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
+from src.metrics.seat import SEAT
+
 
 from transformers import AdamW, get_linear_schedule_with_warmup
 
@@ -33,6 +36,11 @@ class MLMDebias(LightningModule):
 
     # Filename to cache data at
     cached_data = 'attributes_dataset.obj'
+
+    # Data for SEAT 6/7/8 metrics. TODO: get relative paths
+    seat6_data = '/home/przm/bs/data/sent-weat6.jsonl'
+    seat7_data = '/home/przm/bs/data/sent-weat7.jsonl'
+    seat8_data = '/home/przm/bs/data/sent-weat8.jsonl'
 
     def __init__(
         self,
@@ -75,6 +83,8 @@ class MLMDebias(LightningModule):
         )
 
         self.tokenizer = Tokenizer(model_name)
+
+        self.seat_metric = SEAT()
 
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor
@@ -181,10 +191,15 @@ class MLMDebias(LightningModule):
         pass
 
     def validation_step(self, batch: Any, batch_idx: int):
-        pass
+        # Get the SEAT
+        target_x, target_y, attribute_a, attribute_b = batch
+        self.seat_metric.update(
+            self(target_x), self(target_y), self(attribute_a), self(attribute_b)
+        )
 
     def validation_epoch_end(self, outputs: List[Any]):
-        pass
+        sss = self.seat_metric.compute()
+        log.info(f"SEAT: {sss}")
 
     def configure_optimizers(self):
         train_batches = len(self.train_dataloader()) // self.trainer.gpus
@@ -289,6 +304,8 @@ class MLMDebias(LightningModule):
             tokenizer=self.tokenizer
         )
 
+        # TODO: rename it whatever
+        self.seat6_dataset = WeatDataset(data_filename=self.seat6_data, tokenizer=self.tokenizer)
         # Merge splitted M/F/S data into one
         # train_text = [*m_train_sents, *f_train_sents, *s_train_sents]
         # val_text = [*m_val_sents, *f_val_sents, *s_val_sents]
@@ -311,13 +328,10 @@ class MLMDebias(LightningModule):
         return {"targets": targets, "attributes": attributes}
 
     def val_dataloader(self):
+        """For now, returns only data for SEAT6"""
         return DataLoader(
-            dataset=self.data_val,
+            dataset=self.seat6_dataset,
             batch_size=self.batch_size,
-            # We don't really need workers for in-mem data-right?
-            # num_workers=self.num_workers,
-            # pin_memory=self.pin_memory,
-            # collate_fn=lambda x: x,
             shuffle=False,
         )
 
