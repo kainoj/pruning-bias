@@ -24,7 +24,7 @@ log = get_logger(__name__)
 
 class MLMDebias(LightningModule):
 
-    news_data_url = 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'
+    news_data_url = 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'  # noqa: E501
 
     # Files with attribute lists
     female_attributes_filepath = 'data/female.txt'
@@ -158,16 +158,22 @@ class MLMDebias(LightningModule):
 
         targets = self(batch["targets"])
         attributes = self(batch['attributes'], return_word_embs=True, embedding_layer='all')
-        attributes_original = self.forward_original(batch['attributes'], return_word_embs=True, embedding_layer='all')
+        attributes_original = self.forward_original(
+            batch['attributes'], return_word_embs=True, embedding_layer='all'
+        )
 
-        loss_debias = self.loss_debias(static_attributes=self.non_contextualized, targets=targets)
-        loss_regularize = self.loss_regularize(attributes=attributes, attributes_original=attributes_original)
+        loss_debias = self.loss_debias(
+            static_attributes=self.non_contextualized, targets=targets
+        )
+        loss_regularize = self.loss_regularize(
+            attributes=attributes, attributes_original=attributes_original
+        )
 
         loss = self.loss_alpha * loss_debias + self.loss_beta * loss_regularize
 
-        self.log("train/loss/debias", loss_debias, prog_bar=False, on_step=True, on_epoch=True)
-        self.log("train/loss/regularize", loss_regularize, prog_bar=False, on_step=True, on_epoch=True)
-        self.log("train/loss", loss, prog_bar=True, on_step=True, on_epoch=True)
+        self.log("train/loss/debias", loss_debias, prog_bar=False, on_epoch=True)
+        self.log("train/loss/regularize", loss_regularize, prog_bar=False, on_epoch=True)
+        self.log("train/loss", loss, prog_bar=True, on_epoch=True)
 
         return loss
 
@@ -190,11 +196,17 @@ class MLMDebias(LightningModule):
         # These parameters are copied from the original code
         optimizer_grouped_parameters = [
             {
-                "params": [p for n, p in self.model_debias.named_parameters() if not any(nd in n for nd in no_decay)],
+                "params": [
+                    p for n, p in self.model_debias.named_parameters()
+                    if not any(nd in n for nd in no_decay)
+                ],
                 "weight_decay": self.weight_decay,
             },
             {
-                "params": [p for n, p in self.model_debias.named_parameters() if any(nd in n for nd in no_decay)],
+                "params": [
+                    p for n, p in self.model_debias.named_parameters()
+                    if any(nd in n for nd in no_decay)
+                ],
                 "weight_decay": 0.0
             }
         ]
@@ -219,7 +231,8 @@ class MLMDebias(LightningModule):
 
         # If data not cached, extract it and cache to a file
         if not self.cached_data_path.exists():
-            log.info(f'Extracting data from {self.rawdata_path} and caching into {self.cached_data_path}')
+            log.info(f'Extracting data from {self.rawdata_path} '
+                     f'and caching into {self.cached_data_path}')
             data = extract_data(
                 rawdata_path=self.rawdata_path,
                 male_attr_path=self.male_attributes_filepath,
@@ -236,12 +249,18 @@ class MLMDebias(LightningModule):
         with open(str(self.cached_data_path), 'rb') as f:
             data = pickle.load(f)
 
-        # "We randomly sampled 1,000 sentences from each type of extracted sentences as development data.""
-        # Male&Female are our "attributes"
-        m_train_sents, m_val_sents, m_train_attr, m_val_attr = train_test_split(data['male_sents'], data['male_sents_attr'], test_size=1000)
-        f_train_sents, f_val_sents, f_train_attr, f_val_attr = train_test_split(data['female_sents'], data['female_sents_attr'], test_size=1000)
+        # "We randomly sampled 1,000 sentences from each type of extracted
+        # sentences as development data". Here Male&Female are our "attributes"
+        m_train_sents, m_val_sents, m_train_attr, m_val_attr = train_test_split(
+            data['male_sents'], data['male_sents_attr'], test_size=1000
+        )
+        f_train_sents, f_val_sents, f_train_attr, f_val_attr = train_test_split(
+            data['female_sents'], data['female_sents_attr'], test_size=1000
+        )
         # Steretypes are our "targets"
-        s_train_sents, s_val_sents, s_train_trgt, s_val_trgt = train_test_split(data['stereo_sents'], data['stereo_sents_trgt'], test_size=1000)
+        s_train_sents, s_val_sents, s_train_trgt, s_val_trgt = train_test_split(
+            data['stereo_sents'], data['stereo_sents_trgt'], test_size=1000
+        )
 
         train_sentences = s_train_sents
         train_targets_in_sentences = s_train_trgt

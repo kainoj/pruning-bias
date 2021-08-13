@@ -34,7 +34,7 @@ def extract_data(
 
     # This regexp basically tokenizes a sentence over spaces and 's, 're, 've..
     # It's originally taken from OpenAI's GPT-2 Encoder implementation
-    pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
+    pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")  # noqa E501
 
     # Each sentences of the list contains at least one of M/F/S attribute
     male_sents, female_sents, stereo_sents = [], [], []

@@ -54,7 +54,8 @@ class AttributesWithSentecesDataset(Dataset):
         # Tokens of the sentence
         sent = payload['input_ids']
 
-        # Tokens of attribute (might be more than 1). Remove CLS/SEP and reshape, so it broadcasts nicely
+        # Tokens of attribute (might be more than 1).
+        # Remove CLS/SEP and reshape, so it broadcasts nicely
         attr = self.tokenizer(attr, padding=False)['input_ids'][:, 1:-1].reshape((-1, 1))
 
         # Mask indicating positions of attributes within sentence econdings
