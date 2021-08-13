@@ -21,11 +21,11 @@ class WeatDataset(Dataset):
             tokenizer: anything that takes a string and returns tokens or
                 embeddings. If `None`, return a plain sting
         """
-        self.target_x, self.target_y, self.attribute_a, self.attribute_b = \
-            self._get_data(data_filename)
-
         self.data_filename = data_filename
         self.tokenizer = tokenizer
+
+        self.target_x, self.target_y, self.attribute_a, self.attribute_b = \
+            self._get_data()
 
     def __len__(self):
         return min(
@@ -51,9 +51,7 @@ class WeatDataset(Dataset):
             self.attribute_b[idx]
         )
 
-    def _get_data(
-        self,
-    ) -> Tuple[List[str], List[str], List[str], List[str]]:
+    def _get_data(self) -> Tuple[List[str], List[str], List[str], List[str]]:
         """Load data for the WEAT test
 
         Retruns: two lists of targets and two lists of attributes.
