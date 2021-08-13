@@ -149,8 +149,8 @@ class MLMDebias(LightningModule):
     def training_step(self, batch: Any, batch_idx: int):
 
         targets = self(batch["targets"])
-        attributes = self(batch['attributes'])
-        attributes_original = self.forward(batch['attributes'])
+        attributes = self(batch['attributes'], return_word_embs=True)
+        attributes_original = self.forward_original(batch['attributes'], return_word_embs=True)
 
         loss_debias = self.loss_debias(static_attributes=self.non_contextualized, targets=targets)
         loss_regularize = self.loss_regularize(attributes=attributes, attributes_original=attributes_original)

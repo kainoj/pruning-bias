@@ -1,5 +1,4 @@
-from typing import List
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoModel
 import torch
 import torch.nn as nn
 
@@ -36,7 +35,7 @@ class Pipeline(nn.Module):
             return outputs.hidden_states[-1]
         
         if embedding_layer == 'all':
-            return outputs.hidden_states  #  concat maybe?
+            return torch.vstack(outputs.hidden_states)
         
         raise NotImplementedError()
 
@@ -63,8 +62,15 @@ class Pipeline(nn.Module):
         y = x * mask.reshape(mask_size)
         return y
 
-    def dim(self):
-        return self.model.config.hidden_size
+    # @property
+    # def dim(self):
+    #     return self.model.config.dim
+
+    # @property
+    # def n_layers(self):
+    #     # TODO: different model uses different var names, 
+    #     #    eg. bert: confignum_hidden_layers
+    #     return self.model.config.n_layers
 
     def get_word_embeddings(
             self, x: torch.tensor, mask: torch.tensor
@@ -82,6 +88,12 @@ class Pipeline(nn.Module):
         Return:  a word embedding being an avg of it's sub-tokens.
             Shape: (batch_sz, emb_dim).
         """
+        # A quick workaround: in case of 'all'-layer embeddings, the effective
+        # shape of `x` is (batch_sz * num_layers,  ...). Let's repeat mask
+        # for each layer. NB: mask_repeats=1 in any other case.
+        mask_repeats = x.shape[0] // mask.shape[0]
+        mask = mask.repeat((mask_repeats, 1))
+
         # `x` contains only embeddings of these-sub tokens now.
         x_masked = self.apply_output_mask(x, mask)
 
