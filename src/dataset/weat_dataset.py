@@ -27,7 +27,7 @@ class WeatDataset(Dataset):
             self._get_data()
 
     def __len__(self):
-        return min(
+        return max(
             len(self.target_x),
             len(self.target_y),
             len(self.attribute_a),
@@ -35,17 +35,36 @@ class WeatDataset(Dataset):
         )
 
     def tokenize_and_squeeze(self, sentence: str):
-        """Tokenizs a sentece and squeezes tensors (so it batchifies properly.
+        """Tokenizes a sentence and squeezes tensors (so it batchifies properly.
         """
         y = self.tokenizer(sentence)
         return {key: val.squeeze(0) for key, val in y.items()}
 
+    def get_single_item(self, sentences: List[str], idx: int):
+        """Get `idx`-th of `sentences`.
+
+        If index exceeds the list, some random item is returned and along
+        with `is_legit` flag telling us whether the item is should be considered
+        in later WEAT score calculations.
+
+        This is because we want all items from all target/attribute lists,
+        but these lists doesn't need to be of equal length.
+        """
+        length = len(sentences)
+        x = sentences[idx % length]
+        is_legit = (idx < length)
+
+        y = self.tokenizer(x)
+        y['is_legit'] = torch.tensor(is_legit)
+
+        return {key: val.squeeze(0) for key, val in y.items()}
+
     def __getitem__(self, idx):
         return (
-            self.tokenize_and_squeeze(self.target_x[idx]),
-            self.tokenize_and_squeeze(self.target_y[idx]),
-            self.tokenize_and_squeeze(self.attribute_a[idx]),
-            self.tokenize_and_squeeze(self.attribute_b[idx])
+            self.get_single_item(self.target_x, idx),
+            self.get_single_item(self.target_y, idx),
+            self.get_single_item(self.attribute_a, idx),
+            self.get_single_item(self.attribute_b, idx)
         )
 
     def _get_data(self) -> Tuple[List[str], List[str], List[str], List[str]]:
@@ -58,6 +77,9 @@ class WeatDataset(Dataset):
 
         target_x = data['targ1']['examples']
         target_y = data['targ2']['examples']
+
+
+
         attribute_a = data['attr1']['examples']
         attribute_b = data['attr2']['examples']
 
