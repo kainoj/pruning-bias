@@ -39,7 +39,10 @@ class WEAT(Metric):
         Returns: effect size of WEAT.
         """
         return self.effect_size(
-            self.target_x, self.target_y, self.attribute_a, self.attribute_b
+            torch.vstack(self.target_x),
+            torch.vstack(self.target_y),
+            torch.vstack(self.attribute_a),
+            torch.vstack(self.attribute_b)
         )
 
     def s_wAB(
