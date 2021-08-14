@@ -43,13 +43,13 @@ class MLMDebias(LightningModule):
 
     news_data_url: str
 
-    # Files with attribute lists
+    # Files with predefined attributes, one per line
     female_attributes_filepath: str
     male_attributes_filepath: str
     stereotypes_filepath: str
 
-    # Filename to cache data at
-    cached_data: str
+    # Filename to where cache data at
+    cached_data_path: str
 
     def __post_init__(self):
         super().__init__()
@@ -60,9 +60,6 @@ class MLMDebias(LightningModule):
 
         # Path to raw dataset, in format: /data/dir/news-commentary-v15.en.txt
         self.rawdata_path = (self.data_dir / Path(self.news_data_url).name).with_suffix('.txt')
-
-        # Path to cached data (lists of attributes)
-        self.cached_data_path = self.data_dir / self.cached_data
 
         self.model_debias = Pipeline(
             model_name=self.model_name,
@@ -246,7 +243,7 @@ class MLMDebias(LightningModule):
         download_and_un_gzip(self.news_data_url, self.rawdata_path)
 
         # If data not cached, extract it and cache to a file
-        if not self.cached_data_path.exists():
+        if not Path(self.cached_data_path).exists():
             log.info(f'Extracting data from {self.rawdata_path} '
                      f'and caching into {self.cached_data_path}')
             data = extract_data(
@@ -256,7 +253,7 @@ class MLMDebias(LightningModule):
                 stereo_attr_path=self.stereotypes_filepath,
                 model_name=self.model_name
             )
-            with open(str(self.cached_data_path), 'wb') as f:
+            with open(self.cached_data_path, 'wb') as f:
                 pickle.dump(data, f)
 
     def setup(self, stage):

@@ -7,13 +7,7 @@ defaults:
   - callbacks: null
   - logger: tensorboard.yaml
   - experiment: null
-
   - hydra: default.yaml
-
-  # enable color logging
-  # - override hydra/hydra_logging: colorlog
-  # - override hydra/job_logging: colorlog
-
 
 seed: 42
 
@@ -24,7 +18,7 @@ seed: 42
 work_dir: ${hydra:runtime.cwd}
 
 # path to folder with data
-data_dir: ${work_dir}/data/
+data_dir: ${work_dir}/data
 
 # use `python run.py debug=true` for easy debugging!
 # this will run 1 train, val and test loop with only 1 batch

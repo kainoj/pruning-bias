@@ -14,18 +14,16 @@ loss_alpha: 0.2
 loss_beta: 0.8
 
 seat_data:
-    SEAT6: '/home/przm/bs/data/sent-weat6.jsonl'
-    SEAT7: '/home/przm/bs/data/sent-weat7.jsonl'
-    SEAT8: '/home/przm/bs/data/sent-weat8.jsonl'
-
-
+    SEAT6: ${data_dir}/sent-weat6.jsonl
+    SEAT7: ${data_dir}/sent-weat7.jsonl
+    SEAT8: ${data_dir}/sent-weat8.jsonl
 
 news_data_url: 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'
 
 # Files with attribute lists
-female_attributes_filepath: 'data/female.txt'
-male_attributes_filepath: 'data/male.txt'
-stereotypes_filepath: 'data/stereotype.txt'
+female_attributes_filepath: ${data_dir}/female.txt
+male_attributes_filepath: ${data_dir}/male.txt
+stereotypes_filepath: ${data_dir}/stereotype.txt
 
 # Filename to cache data at
-cached_data: 'attributes_dataset.obj'
+cached_data_path: ${data_dir}/data.pickle
