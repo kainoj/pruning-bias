@@ -3,7 +3,7 @@ import torch
 
 from torch.utils.data import DataLoader
 from src.dataset.attributes_dataset import AttributesWithSentecesDataset
-from src.models.modules.mlm_pipeline import Pipeline
+from src.models.modules.pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
 
 

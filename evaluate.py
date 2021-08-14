@@ -4,7 +4,7 @@ import torch
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 
-from src.models.modules.mlm_pipeline import Pipeline
+from src.models.modules.pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
 from src.dataset.weat_dataset import WeatDataset
 

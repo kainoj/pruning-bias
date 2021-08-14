@@ -16,7 +16,7 @@ from src.dataset.utils import extract_data
 from src.dataset.weat_dataset import WeatDataset
 from src.utils.utils import get_logger
 from src.utils.data_io import download_and_un_gzip
-from src.models.modules.mlm_pipeline import Pipeline
+from src.models.modules.pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
 from src.metrics.seat import SEAT
 
