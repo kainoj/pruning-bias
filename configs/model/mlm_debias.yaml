@@ -1,4 +1,4 @@
-_target_: src.models.mlm_debias.MLMDebias
+_target_: src.models.debias.Debiaser
 
 model_name: 'distilbert-base-uncased'
 embedding_layer: 'last'

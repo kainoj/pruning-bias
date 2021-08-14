@@ -27,7 +27,7 @@ log = get_logger(__name__)
 
 
 @dataclass(unsafe_hash=True)
-class MLMDebias(LightningModule):
+class Debiaser(LightningModule):
 
     model_name: str
     embedding_layer: str
