@@ -1,4 +1,5 @@
-from typing import Any, List
+from dataclasses import dataclass
+from typing import Any, Dict, List
 
 import pickle
 import torch
@@ -25,50 +26,37 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 log = get_logger(__name__)
 
 
+@dataclass(unsafe_hash=True)
 class MLMDebias(LightningModule):
 
-    news_data_url = 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'  # noqa: E501
+    model_name: str
+    embedding_layer: str
+    batch_size: int
+    data_dir: str
+    learning_rate: float
+    weight_decay: float
+    adam_eps: float
+    warmup_steps: int
+    loss_alpha: float
+    loss_beta: float
+    seat_data: Dict[str, str]
+
+    news_data_url: str
 
     # Files with attribute lists
-    female_attributes_filepath = 'data/female.txt'
-    male_attributes_filepath = 'data/male.txt'
-    stereotypes_filepath = 'data/stereotype.txt'
+    female_attributes_filepath: str
+    male_attributes_filepath: str
+    stereotypes_filepath: str
 
     # Filename to cache data at
-    cached_data = 'attributes_dataset.obj'
+    cached_data: str
 
-    # Data for SEAT 6/7/8 metrics. TODO: get relative paths
-    seat_data = {
-        "SEAT6": '/home/przm/bs/data/sent-weat6.jsonl',
-        "SEAT7": '/home/przm/bs/data/sent-weat7.jsonl',
-        "SEAT8": '/home/przm/bs/data/sent-weat8.jsonl',
-    }
-    seat_dataset_map = {i: name for i, name in enumerate(seat_data.keys())}
-
-    def __init__(
-        self,
-        model_name: str,
-        embedding_layer: str,
-        batch_size: int,
-        data_dir: str,
-        learning_rate: float,
-        weight_decay: float,
-        adam_eps: float,
-        warmup_steps: int,
-        loss_alpha: float,
-        loss_beta:  float
-    ) -> None:
+    def __post_init__(self):
         super().__init__()
 
-        self.model_name = model_name
-        self.batch_size = batch_size
-        self.data_dir = Path(data_dir)
-        self.learning_rate = learning_rate
-        self.weight_decay = weight_decay
-        self.adam_eps = adam_eps
-        self.warmup_steps = warmup_steps
-        self.loss_alpha = loss_alpha
-        self.loss_beta = loss_beta
+        self.seat_dataset_map = {i: name for i, name in enumerate(self.seat_data.keys())}
+
+        self.data_dir = Path(self.data_dir)
 
         # Path to raw dataset, in format: /data/dir/news-commentary-v15.en.txt
         self.rawdata_path = (self.data_dir / Path(self.news_data_url).name).with_suffix('.txt')
@@ -77,15 +65,15 @@ class MLMDebias(LightningModule):
         self.cached_data_path = self.data_dir / self.cached_data
 
         self.model_debias = Pipeline(
-            model_name=model_name,
-            embedding_layer=embedding_layer
+            model_name=self.model_name,
+            embedding_layer=self.embedding_layer
         )
         self.model_original = Pipeline(
-            model_name=model_name,
+            model_name=self.model_name,
             embedding_layer='all'
         )
 
-        self.tokenizer = Tokenizer(model_name)
+        self.tokenizer = Tokenizer(self.model_name)
 
         # Create a metric for each of provided datasets
         self.seat_metric = {name: SEAT() for name in self.seat_data.keys()}
