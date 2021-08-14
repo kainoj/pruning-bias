@@ -31,6 +31,7 @@ class MLMDebias(LightningModule):
 
     model_name: str
     embedding_layer: str
+    debias_mode: str  # for no only "sentence" TODO: "token"
     batch_size: int
     data_dir: str
     learning_rate: float
