@@ -77,9 +77,6 @@ class WeatDataset(Dataset):
 
         target_x = data['targ1']['examples']
         target_y = data['targ2']['examples']
-
-
-
         attribute_a = data['attr1']['examples']
         attribute_b = data['attr2']['examples']
 
