@@ -3,7 +3,7 @@ _target_: src.models.debias.Debiaser
 model_name: 'distilbert-base-uncased'
 embedding_layer: 'last'
 debias_mode: 'sentence'
-batch_size: 4  # TODO
+batch_size: 32
 data_dir: ${data_dir}
 
 learning_rate: 5e-5

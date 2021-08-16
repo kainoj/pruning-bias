@@ -154,8 +154,13 @@ class Debiaser(LightningModule):
         assert attributes.shape == attributes_original.shape
         return ((attributes - attributes_original) ** 2).sum(1).mean()
 
-    def training_step(self, batch: Any, batch_idx: int):
+    def step(self, batch) -> Dict[str, float]:
+        """A step performed on training and validation.
 
+        This is basically Eq.(4) in the paper.
+
+        It computes debiasing loss with the regularizer term.
+        """
         targets = self(batch["targets"])
         attributes = self(batch['attributes'], return_word_embs=True, embedding_layer='all')
         attributes_original = self.forward_original(
@@ -171,17 +176,33 @@ class Debiaser(LightningModule):
 
         loss = self.loss_alpha * loss_debias + self.loss_beta * loss_regularize
 
-        self.log("train/loss/debias", loss_debias, prog_bar=False, on_epoch=True)
-        self.log("train/loss/regularize", loss_regularize, prog_bar=False, on_epoch=True)
-        self.log("train/loss", loss, prog_bar=True, on_epoch=True)
+        return {
+            "loss": loss,
+            "loss_debias": loss_debias,
+            "loss_regularize": loss_regularize
+        }
 
-        return loss
+    def log_loss(self, loss: Dict[str, float], stage: str):
+        """Loss logger for both training and validation.
+
+        Args:
+            loss: loss dict with keys: 'loss', 'loss_debias', 'loss_regularize'.
+            stage: 'train'|'validation'
+        """
+        self.log(f"{stage}/loss/debias", loss["loss_debias"], prog_bar=False, on_epoch=True)
+        self.log(f"{stage}/loss/regularize", loss["loss_regularize"], prog_bar=False, on_epoch=True)
+        self.log(f"{stage}/loss", loss["loss"], prog_bar=True, on_epoch=True)
+
+    def training_step(self, batch: Any, batch_idx: int):
+        loss = self.step(batch)
+        self.log_loss(loss, 'train')
+        return loss["loss"]
 
     def training_epoch_end(self, outputs: List[Any]):
         pass
 
-    def validation_step(self, batch: Any, batch_idx: int, dataset_idx: int):
-        # Get the SEAT
+    def seat_step(self, batch: Any, batch_idx: int, dataset_idx: int):
+        """SEAT step aka getting the metric update."""
         seat_name = self.seat_dataset_map[dataset_idx]
 
         target_x, target_y, attribute_a, attribute_b = batch
@@ -191,7 +212,17 @@ class Debiaser(LightningModule):
             self(attribute_a, embedding_layer='CLS'),
             self(attribute_b, embedding_layer='CLS'),
         )
-        return 42
+
+    def validation_step(self, batch: Any, batch_idx: int, dataset_idx: int):
+        """In validations we have 4 datasets:
+            * first three are for SEAT 6/7/8
+            * the fourth is to get validation loss value
+        """
+        if dataset_idx < 3:
+            self.seat_step(batch, batch_idx, dataset_idx)
+        else:
+            loss = self.step(batch)
+            self.log_loss(loss, 'validation')
 
     def validation_epoch_end(self, outputs: List[Any]):
         for seat_name in self.seat_data.keys():
@@ -325,12 +356,23 @@ class Debiaser(LightningModule):
         return {"targets": targets, "attributes": attributes}
 
     def val_dataloader(self):
-        """For now, returns only data for SEAT6
+        """First three dataloaders are for SEAT score, the 4th is for val loss.
+        Recall the loss is an average dot product between targets and attributes.
 
-        It passes batches sequentally.
-        https://pytorch-lightning.readthedocs.io/en/latest/guides/data.html#multiple-validation-test-datasets
+        These dataloaders are iterated sequentially.
         """
-        return self.seat_dataloaders()
+        from pytorch_lightning.trainer.supporters import CombinedLoader
+        seat = self.seat_dataloaders()
+        loss = CombinedLoader({
+            "targets": DataLoader(
+                dataset=self.data_val,
+                batch_size=self.batch_size,
+                shuffle=False
+            ),
+            "attributes": self.attributes_dataloader()
+        }, "max_size_cycle")
+        return seat + [loss]
+        # return loss
 
     def attributes_dataloader(self):
         return DataLoader(
