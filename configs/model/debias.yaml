@@ -19,12 +19,16 @@ seat_data:
     SEAT7: ${data_dir}/sent-weat7.jsonl
     SEAT8: ${data_dir}/sent-weat8.jsonl
 
-news_data_url: 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'
+datafiles:
+    news-commentary-v15.en.txt: 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'
+    attributes_female: 'https://raw.githubusercontent.com/kanekomasahiro/context-debias/main/data/female.txt'
+    attributes_male: 'https://raw.githubusercontent.com/kanekomasahiro/context-debias/main/data/male.txt'
+    targets_stereotypes: 'https://raw.githubusercontent.com/kanekomasahiro/context-debias/main/data/stereotype.txt'
 
-# Files with attribute lists
-female_attributes_filepath: ${data_dir}/female.txt
-male_attributes_filepath: ${data_dir}/male.txt
-stereotypes_filepath: ${data_dir}/stereotype.txt
+# # Files with attribute lists
+# female_attributes_filepath: ${data_dir}/female.txt
+# male_attributes_filepath: ${data_dir}/male.txt
+# stereotypes_filepath: ${data_dir}/stereotype.txt
 
 # Filename to cache data at
 cached_data_path: ${data_dir}/data.pickle

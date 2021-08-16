@@ -8,6 +8,7 @@ from pytorch_lightning import LightningModule
 from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import DataLoader
+from torchtext.utils import download_from_url, extract_archive
 from sklearn.model_selection import train_test_split
 
 from src.dataset.attributes_dataset import AttributesWithSentencesDataset
@@ -15,7 +16,6 @@ from src.dataset.targets_dataset import SentencesWithTargetsDatset
 from src.dataset.utils import extract_data
 from src.dataset.weat_dataset import WeatDataset
 from src.utils.utils import get_logger
-from src.utils.data_io import download_and_un_gzip
 from src.models.modules.pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
 from src.metrics.seat import SEAT
@@ -42,12 +42,7 @@ class Debiaser(LightningModule):
     loss_beta: float
     seat_data: Dict[str, str]
 
-    news_data_url: str
-
-    # Files with predefined attributes, one per line
-    female_attributes_filepath: str
-    male_attributes_filepath: str
-    stereotypes_filepath: str
+    datafiles: Dict[str, str]
 
     # Filename to where cache data at
     cached_data_path: str
@@ -58,9 +53,6 @@ class Debiaser(LightningModule):
         self.seat_dataset_map = {i: name for i, name in enumerate(self.seat_data.keys())}
 
         self.data_dir = Path(self.data_dir)
-
-        # Path to raw dataset, in format: /data/dir/news-commentary-v15.en.txt
-        self.rawdata_path = (self.data_dir / Path(self.news_data_url).name).with_suffix('.txt')
 
         self.model_debias = Pipeline(
             model_name=self.model_name,
@@ -282,18 +274,25 @@ class Debiaser(LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def prepare_data(self):
-        # Download and unzip the News dataset
-        download_and_un_gzip(self.news_data_url, self.rawdata_path)
+        extracted_path: Path  # One of the urls must be .gz
+
+        for name, url in self.datafiles.items():
+            print(url)
+            datafiles = download_from_url(url, root=self.data_dir)
+            self.datafiles[name] = datafiles
+            if datafiles.endswith('.gz'):
+                extracted_path = Path(datafiles).with_suffix('.txt').name
+                extract_archive(datafiles, extracted_path)
 
         # If data not cached, extract it and cache to a file
         if not Path(self.cached_data_path).exists():
-            log.info(f'Extracting data from {self.rawdata_path} '
+            log.info(f'Extracting data from {extracted_path} '
                      f'and caching into {self.cached_data_path}')
             data = extract_data(
-                rawdata_path=self.rawdata_path,
-                male_attr_path=self.male_attributes_filepath,
-                female_attr_path=self.female_attributes_filepath,
-                stereo_attr_path=self.stereotypes_filepath,
+                rawdata_path=extracted_path,
+                male_attr_path=self.datafiles['attributes_male'],
+                female_attr_path=self.datafiles['attributes_female'],
+                stereo_attr_path=self.datafiles['targets_stereotypes'],
                 model_name=self.model_name
             )
             with open(self.cached_data_path, 'wb') as f:
