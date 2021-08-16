@@ -77,7 +77,7 @@ class Debiaser(LightningModule):
         self.seat_metric = {name: SEAT() for name in self.seat_data.keys()}
 
         # Computed on the begining of each epoch
-        self.non_contextualized: torch.tensor
+        self.non_contextualized: torch.tensor = None
 
     def on_train_epoch_start(self) -> None:
 
@@ -220,7 +220,9 @@ class Debiaser(LightningModule):
         """
         if dataset_idx < 3:
             self.seat_step(batch, batch_idx, dataset_idx)
-        else:
+        elif self.non_contextualized is not None:
+            # On th sanity check the noncontextualized embeddings are not
+            # initialized yet – effectively we'll compute only seat on sanity 
             loss = self.step(batch)
             self.log_loss(loss, 'validation')
 
@@ -229,7 +231,7 @@ class Debiaser(LightningModule):
             seat_value = self.seat_metric[seat_name].compute()
             self.seat_metric[seat_name].reset()
 
-            self.log(f"validation/{seat_name}", seat_value)
+            self.log(f"SEAT/{seat_name}", seat_value)
 
     def configure_optimizers(self):
         train_batches = len(self.train_dataloader()) // self.trainer.gpus
