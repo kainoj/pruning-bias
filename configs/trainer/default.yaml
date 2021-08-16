@@ -10,5 +10,5 @@ weights_summary: null
 progress_bar_refresh_rate: 5
 resume_from_checkpoint: null
 
-# We don't need sanity check as we already run evaluation before training.
-num_sanity_val_steps: -1
+# We don't need sanity check as we already run SEAT evaluation before training.
+num_sanity_val_steps: 0

@@ -79,6 +79,11 @@ class Debiaser(LightningModule):
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor = None
 
+    def on_train_start(self) -> None:
+        # Get SEAT scores of vanilla model
+        log.info("Getting SEAT metric of vanilla model...")
+        self.trainer.validate(model=self)
+
     def on_train_epoch_start(self) -> None:
 
         log.info(f'Computing non-contextualized embeddings of'
