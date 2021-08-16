@@ -303,12 +303,6 @@ class Debiaser(LightningModule):
             tokenizer=self.tokenizer
         )
 
-        # TODO: rename it whatever
-        self.seat_datasets = {
-            name: WeatDataset(data_filename=path, tokenizer=self.tokenizer)
-            for name, path in self.seat_data.items()
-        }
-
         # Merge splitted M/F/S data into one
         # train_text = [*m_train_sents, *f_train_sents, *s_train_sents]
         # val_text = [*m_val_sents, *f_val_sents, *s_val_sents]
@@ -336,9 +330,7 @@ class Debiaser(LightningModule):
         It passes batches sequentally.
         https://pytorch-lightning.readthedocs.io/en/latest/guides/data.html#multiple-validation-test-datasets
         """
-        return [
-            DataLoader(ds, batch_size=1, shuffle=False) for ds in self.seat_datasets.values()
-        ]
+        return self.seat_dataloaders()
 
     def attributes_dataloader(self):
         return DataLoader(
@@ -346,3 +338,16 @@ class Debiaser(LightningModule):
             batch_size=self.batch_size,
             shuffle=False
         )
+
+    def seat_dataloaders(self):
+        """Get dataloaders for SEAT6 metrices.
+
+        Creating datasets here allows SEAT computations before training even begins.
+        """
+        seat_datasets = {
+            name: WeatDataset(data_filename=path, tokenizer=self.tokenizer)
+            for name, path in self.seat_data.items()
+        }
+        return [
+            DataLoader(ds, batch_size=1, shuffle=False) for ds in seat_datasets.values()
+        ]

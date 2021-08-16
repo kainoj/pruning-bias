@@ -68,7 +68,7 @@ def train(config: DictConfig) -> Optional[float]:
 
     # Get SEAT scores of vanilla model
     log.info("Starting validation before training")
-    trainer.validate(model=model)
+    trainer.validate(model=model, val_dataloaders=model.seat_dataloaders())
 
     # Train the model
     log.info("Starting training!")
