@@ -4,7 +4,7 @@
 defaults:
   - trainer: default.yaml
   - model: debias.yaml
-  - callbacks: null
+  - callbacks: default.yaml
   - logger: tensorboard.yaml
   - experiment: null
   - hydra: default.yaml
