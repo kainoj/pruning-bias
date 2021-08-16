@@ -1,5 +1,9 @@
+from typing import Tuple
+
 import torch
 import torch.nn as nn
+
+from torch import Tensor
 from torchmetrics import Metric
 
 
@@ -38,12 +42,20 @@ class WEAT(Metric):
 
         Returns: effect size of WEAT.
         """
-        return self.effect_size(
-            torch.vstack(self.target_x),
-            torch.vstack(self.target_y),
-            torch.vstack(self.attribute_a),
-            torch.vstack(self.attribute_b)
-        )
+        x, y, a, b = self._get_final_stats()
+        return self.effect_size(target_x=x, target_y=y, attribute_a=a, attribute_b=b)
+
+    def _get_final_stats(self) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        """Concats score items if necessary, before passing them to a compute function."""
+
+        def _convert(x) -> Tensor:
+            return torch.vstack(x) if isinstance(x, list) else x
+
+        x = _convert(self.target_x)
+        y = _convert(self.target_y)
+        a = _convert(self.attribute_a)
+        b = _convert(self.attribute_b)
+        return x, y, a, b
 
     def s_wAB(
         self,
