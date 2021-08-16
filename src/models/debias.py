@@ -79,10 +79,6 @@ class Debiaser(LightningModule):
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor = None
 
-    def on_train_start(self) -> None:
-        # Get SEAT scores of vanilla model
-        log.info("Getting SEAT metric of vanilla model...")
-        self.trainer.validate(model=self)
 
     def on_train_epoch_start(self) -> None:
 
@@ -194,9 +190,9 @@ class Debiaser(LightningModule):
             loss: loss dict with keys: 'loss', 'loss_debias', 'loss_regularize'.
             stage: 'train'|'validation'
         """
-        self.log(f"{stage}/loss/debias", loss["loss_debias"], prog_bar=False, on_epoch=True)
-        self.log(f"{stage}/loss/regularize", loss["loss_regularize"], prog_bar=False, on_epoch=True)
-        self.log(f"{stage}/loss", loss["loss"], prog_bar=True, on_epoch=True)
+        self.log(f"{stage}/loss/debias", loss["loss_debias"], prog_bar=False, on_epoch=True, sync_dist=True)
+        self.log(f"{stage}/loss/regularize", loss["loss_regularize"], prog_bar=False, on_epoch=True, sync_dist=True)
+        self.log(f"{stage}/loss", loss["loss"], prog_bar=True, on_epoch=True, sync_dist=True)
 
     def training_step(self, batch: Any, batch_idx: int):
         loss = self.step(batch)
@@ -227,7 +223,7 @@ class Debiaser(LightningModule):
             self.seat_step(batch, batch_idx, dataset_idx)
         elif self.non_contextualized is not None:
             # On th sanity check the noncontextualized embeddings are not
-            # initialized yet – effectively we'll compute only seat on sanity 
+            # initialized yet – effectively we'll compute only seat on sanity
             loss = self.step(batch)
             self.log_loss(loss, 'validation')
 
@@ -236,7 +232,7 @@ class Debiaser(LightningModule):
             seat_value = self.seat_metric[seat_name].compute()
             self.seat_metric[seat_name].reset()
 
-            self.log(f"SEAT/{seat_name}", seat_value)
+            self.log(f"SEAT/{seat_name}", seat_value, sync_dist=True)
 
     def configure_optimizers(self):
         train_batches = len(self.train_dataloader()) // self.trainer.gpus

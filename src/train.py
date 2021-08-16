@@ -66,6 +66,9 @@ def train(config: DictConfig) -> Optional[float]:
         logger=logger,
     )
 
+    log.info("Getting SEAT metric of vanilla model...")
+    trainer.validate(model=model)
+
     # Train the model
     log.info("Starting training!")
     trainer.fit(model=model)
