@@ -7,7 +7,7 @@ from src.utils.utils import get_logger
 log = get_logger(__name__)
 
 
-class AttributesWithSentecesDataset(Dataset):
+class AttributesWithSentencesDataset(Dataset):
 
     def __init__(
         self,

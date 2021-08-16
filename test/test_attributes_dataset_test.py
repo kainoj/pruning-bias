@@ -2,7 +2,7 @@ import unittest
 import torch
 
 from torch.utils.data import DataLoader
-from src.dataset.attributes_dataset import AttributesWithSentecesDataset
+from src.dataset.attributes_dataset import AttributesWithSentencesDataset
 from src.models.modules.pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
 
@@ -25,7 +25,7 @@ class AttributesDatasetTest(unittest.TestCase):
         self.model_name = 'distilbert-base-uncased'
         self.tokenizer = Tokenizer(self.model_name)
 
-        self.ds = AttributesWithSentecesDataset(
+        self.ds = AttributesWithSentencesDataset(
             attributes=attributes,
             sentences_of_attributes=sentences_of_attributes,
             tokenizer=self.tokenizer

@@ -10,7 +10,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 
-from src.dataset.attributes_dataset import AttributesWithSentecesDataset
+from src.dataset.attributes_dataset import AttributesWithSentencesDataset
 from src.dataset.targets_dataset import SentencesWithTargetsDatset
 from src.dataset.utils import extract_data
 from src.dataset.weat_dataset import WeatDataset
@@ -331,7 +331,7 @@ class Debiaser(LightningModule):
             attributes.append(attr)
             sentences_of_attributes.append(sents)
 
-        self.attributes_data = AttributesWithSentecesDataset(
+        self.attributes_data = AttributesWithSentencesDataset(
             attributes=attributes,
             sentences_of_attributes=sentences_of_attributes,
             tokenizer=self.tokenizer
