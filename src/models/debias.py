@@ -79,7 +79,6 @@ class Debiaser(LightningModule):
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor = None
 
-
     def on_train_epoch_start(self) -> None:
 
         log.info(f'Computing non-contextualized embeddings of'
@@ -190,9 +189,18 @@ class Debiaser(LightningModule):
             loss: loss dict with keys: 'loss', 'loss_debias', 'loss_regularize'.
             stage: 'train'|'validation'
         """
-        self.log(f"{stage}/loss/debias", loss["loss_debias"], prog_bar=False, on_epoch=True, sync_dist=True)
-        self.log(f"{stage}/loss/regularize", loss["loss_regularize"], prog_bar=False, on_epoch=True, sync_dist=True)
-        self.log(f"{stage}/loss", loss["loss"], prog_bar=True, on_epoch=True, sync_dist=True)
+        self.log(
+            f"{stage}/loss/debias", loss["loss_debias"],
+            prog_bar=False, on_epoch=True, sync_dist=True
+        )
+        self.log(
+            f"{stage}/loss/regularize", loss["loss_regularize"],
+            prog_bar=False, on_epoch=True, sync_dist=True
+        )
+        self.log(
+            f"{stage}/loss", loss["loss"],
+            prog_bar=True, on_epoch=True, sync_dist=True
+        )
 
     def training_step(self, batch: Any, batch_idx: int):
         loss = self.step(batch)
