@@ -106,6 +106,8 @@ class Debiaser(LightningModule):
             self.non_contextualized = non_contextualized_acc / non_contextualized_cntr
             self.non_contextualized.requires_grad_(False)
 
+        log.info(f"Got non-contextualized embeddings of shape {self.non_contextualized.shape}")
+
     def forward(
         self, inputs, return_word_embs=False, embedding_layer=None
     ):
@@ -317,12 +319,9 @@ class Debiaser(LightningModule):
             data['stereo_sents'], data['stereo_sents_trgt'], test_size=1000
         )
 
-        train_sentences = s_train_sents
-        train_targets_in_sentences = s_train_trgt
-
         self.data_train = SentencesWithTargetsDatset(
-            sentences=train_sentences,
-            targets_in_sentences=train_targets_in_sentences,
+            sentences=s_train_sents,
+            targets_in_sentences=s_train_trgt,
             tokenizer=self.tokenizer
         )
         self.data_val = SentencesWithTargetsDatset(
