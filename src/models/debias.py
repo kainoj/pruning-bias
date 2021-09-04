@@ -284,7 +284,7 @@ class Debiaser(LightningModule):
             self.datafiles[name] = datafiles
             if datafiles.endswith('.gz'):
                 extracted_path = Path(datafiles).with_suffix('.txt').name
-                extract_archive(datafiles, extracted_path)
+                extracted_path = extract_archive(datafiles, extracted_path)[0]
 
         # If data not cached, extract it and cache to a file
         if not Path(self.cached_data_path).exists():
