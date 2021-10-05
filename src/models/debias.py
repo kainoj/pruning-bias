@@ -89,7 +89,7 @@ class Debiaser(LightningModule):
                 # Outputs contains only contextualized word embs for attributes
                 outputs = self(sents, return_word_embs=True)
 
-                attribute_ids = sents['attribute_id']
+                attribute_ids = sents['attribute_gender']
 
                 assert outputs.shape[0] == attribute_ids.shape[0]
 
@@ -329,17 +329,10 @@ class Debiaser(LightningModule):
             targets_in_sentences=s_val_trgt,
             tokenizer=self.tokenizer
         )
-
-        attributes: List[str] = []
-        sentences_of_attributes: List[List[str]] = []
-
-        for attr, sents in data['attributes'].items():
-            attributes.append(attr)
-            sentences_of_attributes.append(sents)
-
         self.attributes_data = AttributesWithSentencesDataset(
-            attributes=attributes,
-            sentences_of_attributes=sentences_of_attributes,
+            sentences=[*m_train_sents, *f_train_sents],
+            attributes=[*m_train_attr, *f_train_attr],
+            subset=([0] * len(m_train_sents) + [1] * len(f_train_sents)),
             tokenizer=self.tokenizer
         )
 
