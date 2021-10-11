@@ -122,13 +122,11 @@ class Debiaser(LightningModule):
                 that were precomputed at the beginning of the epoch
             targets: contextualized embeddigs of targets of current batch
         """
-        attr = static_attributes.T                # (768, #attrs)
+        attr = static_attributes.T         # (768, #attrs)
         trgt = targets.reshape((-1, 768))  # (bsz*128, 768) # TODO get the dim
 
-        dot = torch.mm(trgt, attr) ** 2
-
-        # Sum across rows,then take mean
-        return dot.sum(1).mean()
+        # dot product -> sum rows -> square -> mean
+        return torch.mm(trgt, attr).sum(1).pow(2).mean()
 
     def loss_regularize(self, attributes, attributes_original):
         """Loss for regularization (L2), Eq.(3)
@@ -139,7 +137,7 @@ class Debiaser(LightningModule):
             n = num_layers if embedding_layer=='all' else 1.
         """
         assert attributes.shape == attributes_original.shape
-        return ((attributes - attributes_original) ** 2).sum(1).mean()
+        return (attributes - attributes_original).pow(2).sum(1).mean()
 
     def step(self, batch) -> Dict[str, float]:
         """A step performed on training and validation.
