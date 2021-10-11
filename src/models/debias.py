@@ -77,9 +77,8 @@ class Debiaser(LightningModule):
                  f' {len(self.attributes_data.attributes)} attributes on'
                  f' {len(self.attributes_data.sentences)} sentences.')
 
-        num_attrs = len(self.attributes_data.attributes)
-        non_contextualized_acc = torch.zeros((num_attrs, 768), device=self.device)
-        non_contextualized_cntr = torch.zeros((num_attrs, 1), device=self.device)
+        non_contextualized_acc = torch.zeros((2, 768), device=self.device)
+        non_contextualized_cntr = torch.zeros((2, 1), device=self.device)
 
         with torch.no_grad():
             for sents in tqdm(self.attributes_dataloader()):
@@ -93,13 +92,7 @@ class Debiaser(LightningModule):
 
                 assert outputs.shape[0] == attribute_ids.shape[0]
 
-                # Ups, this won't work if values of attribute_ids are not distinct 🤷🏼‍♂️
-                # non_contextualized_acc[attribute_ids] += outputs
-                # non_contextualized_cntr[attribute_ids] += 1
-
-                # A quick workaround:
                 for attr_id, out in zip(attribute_ids, outputs):
-
                     non_contextualized_acc[attr_id] += out
                     non_contextualized_cntr[attr_id] += 1
 
@@ -344,7 +337,6 @@ class Debiaser(LightningModule):
         # val_attr = [*m_val_attr, *f_val_attr, *s_val_attr]
 
     def train_dataloader(self):
-        # TODO: what about num workers?
         targets = DataLoader(
             dataset=self.data_train,
             batch_size=self.batch_size,
