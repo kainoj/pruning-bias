@@ -1,0 +1,19 @@
+_target_: src.datamodules.debias_datamodule.DebiasDataModule
+
+model_name: ${model.model_name}
+batch_size: 32
+data_dir: ${data_dir}
+
+datafiles:
+    news-commentary-v15.en.txt: 'http://data.statmt.org/news-commentary/v15/training-monolingual/news-commentary-v15.en.gz'
+    attributes_female: 'https://raw.githubusercontent.com/kanekomasahiro/context-debias/main/data/female.txt'
+    attributes_male: 'https://raw.githubusercontent.com/kanekomasahiro/context-debias/main/data/male.txt'
+    targets_stereotypes: 'https://raw.githubusercontent.com/kanekomasahiro/context-debias/main/data/stereotype.txt'
+
+seat_data:
+    SEAT6: ${data_dir}/sent-weat6.jsonl
+    SEAT7: ${data_dir}/sent-weat7.jsonl
+    SEAT8: ${data_dir}/sent-weat8.jsonl
+
+# Filename to cache data at
+cached_data_path: ${data_dir}/data.pickle

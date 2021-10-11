@@ -4,6 +4,7 @@
 defaults:
   - trainer: default.yaml
   - model: debias.yaml
+  - datamodule: default.yaml
   - callbacks: default.yaml
   - logger: tensorboard.yaml
   - experiment: null
