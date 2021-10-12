@@ -108,6 +108,10 @@ class DebiasDataModule(LightningDataModule):
 
         # train_attr = [*m_train_attr, *f_train_attr, *s_train_attr]
         # val_attr = [*m_val_attr, *f_val_attr, *s_val_attr]
+        self.seat_datasets = {
+            name: WeatDataset(data_filename=path, tokenizer=self.tokenizer)
+            for name, path in self.seat_data.items()
+        }
 
     def train_dataloader(self):
         targets = DataLoader(

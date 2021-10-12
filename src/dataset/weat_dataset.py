@@ -59,6 +59,14 @@ class WeatDataset(Dataset):
 
         return {key: val.squeeze(0) for key, val in y.items()}
 
+    def get_all_items(self):
+        return {
+            'target_x': self.tokenizer(self.target_x),
+            'target_y': self.tokenizer(self.target_y),
+            'attribute_a': self.tokenizer(self.attribute_a),
+            'attribute_b': self.tokenizer(self.attribute_b),
+        }
+
     def __getitem__(self, idx):
         return (
             self.get_single_item(self.target_x, idx),

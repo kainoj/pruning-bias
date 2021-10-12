@@ -5,6 +5,7 @@ import torch
 from pytorch_lightning import LightningModule
 
 from tqdm import tqdm
+from src.metrics.seat import SEAT
 
 from src.utils.utils import get_logger
 from src.models.modules.pipeline import Pipeline
@@ -47,6 +48,7 @@ class Debiaser(LightningModule):
         self.non_contextualized: torch.tensor = None
 
     def on_train_epoch_start(self) -> None:
+        self.compute_seat()
 
         datamodule = self.trainer.datamodule
 
@@ -171,12 +173,33 @@ class Debiaser(LightningModule):
     def training_epoch_end(self, outputs: List[Any]):
         pass
 
+    def compute_seat(self):
+        for seat_name, dataset in self.trainer.datamodule.seat_datasets.items():
+            seat = SEAT()
+            data = dataset.get_all_items()
+
+            target_x = data['target_x']
+            target_y = data['target_y']
+            attribute_a = data['attribute_a']
+            attribute_b = data['attribute_b']
+
+            self.eval()
+            with torch.no_grad():
+                value = seat(
+                    self(target_x, embedding_layer='CLS'),
+                    self(target_y, embedding_layer='CLS'),
+                    self(attribute_a, embedding_layer='CLS'),
+                    self(attribute_b, embedding_layer='CLS'),
+                )
+            self.train()
+            self.log(f"SEAT/{seat_name}", value, sync_dist=True)
+
     def seat_step(self, batch: Any, batch_idx: int, dataset_idx: int):
         """SEAT step aka getting the metric update."""
-        seat_name = self.seat_dataset_map[dataset_idx]
+        seat_name = self.trainer.datamodule.seat_dataset_map[dataset_idx]
 
         target_x, target_y, attribute_a, attribute_b = batch
-        self.seat_metric[seat_name].update(
+        self.trainer.datamodule.seat_metric[seat_name].update(
             self(target_x, embedding_layer='CLS'),
             self(target_y, embedding_layer='CLS'),
             self(attribute_a, embedding_layer='CLS'),
@@ -197,9 +220,9 @@ class Debiaser(LightningModule):
             self.log_loss(loss, 'validation')
 
     def validation_epoch_end(self, outputs: List[Any]):
-        for seat_name in self.seat_data.keys():
-            seat_value = self.seat_metric[seat_name].compute()
-            self.seat_metric[seat_name].reset()
+        for seat_name in self.trainer.datamodule.seat_data.keys():
+            seat_value = self.trainer.datamodule.seat_metric[seat_name].compute()
+            self.trainer.datamodule.seat_metric[seat_name].reset()
 
             self.log(f"SEAT/{seat_name}", seat_value, sync_dist=True)
 
