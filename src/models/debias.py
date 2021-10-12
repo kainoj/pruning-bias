@@ -174,14 +174,18 @@ class Debiaser(LightningModule):
         pass
 
     def compute_seat(self):
+        """Evaluates the SEAT scores for each available metric."""
+        def to_device(inputs: dict[str, torch.tensor]):
+            return {key: val.to(self.device) for key, val in inputs.items()}
+
         for seat_name, dataset in self.trainer.datamodule.seat_datasets.items():
             seat = SEAT()
             data = dataset.get_all_items()
 
-            target_x = data['target_x']
-            target_y = data['target_y']
-            attribute_a = data['attribute_a']
-            attribute_b = data['attribute_b']
+            target_x = to_device(data['target_x'])
+            target_y = to_device(data['target_y'])
+            attribute_a = to_device(data['attribute_a'])
+            attribute_b = to_device(data['attribute_b'])
 
             self.eval()
             with torch.no_grad():
@@ -192,6 +196,7 @@ class Debiaser(LightningModule):
                     self(attribute_b, embedding_layer='CLS'),
                 )
             self.train()
+            print(f"SEAT/{seat_name} = {value}")
             self.log(f"SEAT/{seat_name}", value, sync_dist=True)
 
     def seat_step(self, batch: Any, batch_idx: int, dataset_idx: int):
