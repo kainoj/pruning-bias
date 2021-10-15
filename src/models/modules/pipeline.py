@@ -125,10 +125,4 @@ class Pipeline(nn.Module):
                 mask=sentences['attribute_mask']
             )
 
-        if 'is_legit' in sentences:
-            # Exclude batch members based on `is_legit` mask.
-            # This is useful, for example, when we want to get rid of elements
-            # that were padded within a batch (eg. for SEAT score).
-            return embeddings[sentences['is_legit']]
-
         return embeddings
