@@ -44,8 +44,8 @@ class Debiaser(LightningModule):
 
         self.tokenizer = Tokenizer(self.model_name)
 
-        # Computed on the begining of each epoch
-        self.non_contextualized: torch.tensor = None
+        # Non-contextualized embeddings are computed on the begining of each epoch
+        self.non_contextualized: torch.tensor
 
     def on_train_start(self) -> None:
         self.compute_seat()
@@ -200,7 +200,7 @@ class Debiaser(LightningModule):
                     self(attribute_b, embedding_layer='CLS'),
                 )
             self.train()
-            print(f"SEAT/{seat_name} = {value}")
+
             self.log(f"SEAT/{seat_name}", value, sync_dist=True)
 
     def validation_step(self, batch: Any, batch_idx: int):
