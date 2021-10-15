@@ -47,9 +47,10 @@ class Debiaser(LightningModule):
         # Computed on the begining of each epoch
         self.non_contextualized: torch.tensor = None
 
-    def on_train_epoch_start(self) -> None:
+    def on_train_start(self) -> None:
         self.compute_seat()
 
+    def on_train_epoch_start(self) -> None:
         datamodule = self.trainer.datamodule
 
         log.info(f'Computing non-contextualized embeddings on'
@@ -78,6 +79,9 @@ class Debiaser(LightningModule):
             self.non_contextualized.requires_grad_(False)
 
         log.info(f"Got non-contextualized embeddings of shape {self.non_contextualized.shape}")
+
+    def on_validation_start(self):
+        self.compute_seat()
 
     def forward(
         self, inputs, return_word_embs=False, embedding_layer=None
@@ -199,37 +203,9 @@ class Debiaser(LightningModule):
             print(f"SEAT/{seat_name} = {value}")
             self.log(f"SEAT/{seat_name}", value, sync_dist=True)
 
-    def seat_step(self, batch: Any, batch_idx: int, dataset_idx: int):
-        """SEAT step aka getting the metric update."""
-        seat_name = self.trainer.datamodule.seat_dataset_map[dataset_idx]
-
-        target_x, target_y, attribute_a, attribute_b = batch
-        self.trainer.datamodule.seat_metric[seat_name].update(
-            self(target_x, embedding_layer='CLS'),
-            self(target_y, embedding_layer='CLS'),
-            self(attribute_a, embedding_layer='CLS'),
-            self(attribute_b, embedding_layer='CLS'),
-        )
-
-    def validation_step(self, batch: Any, batch_idx: int, dataset_idx: int):
-        """In validations we have 4 datasets:
-            * first three are for SEAT 6/7/8
-            * the fourth is to get validation loss value
-        """
-        if dataset_idx < 3:
-            self.seat_step(batch, batch_idx, dataset_idx)
-        elif self.non_contextualized is not None:
-            # On th sanity check the noncontextualized embeddings are not
-            # initialized yet – effectively we'll compute only seat on sanity
-            loss = self.step(batch)
-            self.log_loss(loss, 'validation')
-
-    def validation_epoch_end(self, outputs: List[Any]):
-        for seat_name in self.trainer.datamodule.seat_data.keys():
-            seat_value = self.trainer.datamodule.seat_metric[seat_name].compute()
-            self.trainer.datamodule.seat_metric[seat_name].reset()
-
-            self.log(f"SEAT/{seat_name}", seat_value, sync_dist=True)
+    def validation_step(self, batch: Any, batch_idx: int):
+        loss = self.step(batch)
+        self.log_loss(loss, 'validation')
 
     def configure_optimizers(self):
         train_batches = len(self.train_dataloader()) // self.trainer.gpus

@@ -108,6 +108,7 @@ class DebiasDataModule(LightningDataModule):
 
         # train_attr = [*m_train_attr, *f_train_attr, *s_train_attr]
         # val_attr = [*m_val_attr, *f_val_attr, *s_val_attr]
+
         self.seat_datasets = {
             name: WeatDataset(data_filename=path, tokenizer=self.tokenizer)
             for name, path in self.seat_data.items()
@@ -127,24 +128,24 @@ class DebiasDataModule(LightningDataModule):
         return {"targets": targets, "attributes": attributes}
 
     def val_dataloader(self):
-        """First three dataloaders are for SEAT score, the 4th is for val loss.
-        Recall the loss is an average dot product between targets and attributes.
-
-        These dataloaders are iterated sequentially.
-        """
-        seat = self.seat_dataloaders()
-        loss = CombinedLoader({
-            "targets": DataLoader(
-                dataset=self.data_val,
-                batch_size=self.batch_size,
-                shuffle=False
-            ),
-            "attributes": self.attributes_dataloader()
-        }, "max_size_cycle")
-        return seat + [loss]
-        # return loss
+        """Validation dataloader returns pairs of (target, attribute) embeddings."""
+        targets = DataLoader(
+            dataset=self.data_val,
+            batch_size=self.batch_size,
+            shuffle=False
+        )
+        attributes = DataLoader(
+            dataset=self.attributes_data,
+            batch_size=self.batch_size,
+            shuffle=False
+        )
+        return CombinedLoader(
+            {"targets": targets, "attributes": attributes},
+            "max_size_cycle"
+        )
 
     def attributes_dataloader(self):
+        """This dataloader is used to compute static embeddigs of the attributes."""
         return DataLoader(
             dataset=self.attributes_data,
             batch_size=self.batch_size,
@@ -152,14 +153,7 @@ class DebiasDataModule(LightningDataModule):
         )
 
     def seat_dataloaders(self):
-        """Get dataloaders for SEAT6 metrices.
-
-        Creating datasets here allows SEAT computations before training even begins.
-        """
-        seat_datasets = {
-            name: WeatDataset(data_filename=path, tokenizer=self.tokenizer)
-            for name, path in self.seat_data.items()
-        }
+        """Dataloaders for SEAT metrices (currently unused)."""
         return [
-            DataLoader(ds, batch_size=1, shuffle=False) for ds in seat_datasets.values()
+            DataLoader(ds, batch_size=1, shuffle=False) for ds in self.seat_datasets.values()
         ]
