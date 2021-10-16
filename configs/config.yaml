@@ -3,7 +3,7 @@
 # specify here default training configuration
 defaults:
   - trainer: default.yaml
-  - model: debias.yaml
+  - model: debiaser.yaml
   - datamodule: default.yaml
   - callbacks: default.yaml
   - logger: tensorboard.yaml
