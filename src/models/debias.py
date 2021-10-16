@@ -213,33 +213,15 @@ class Debiaser(LightningModule):
         self.log_loss(loss, 'validation')
 
     def configure_optimizers(self):
-        # TODO simplify it
-        train_batches = len(self.train_dataloader()) // self.trainer.gpus
+        num_devices = self.trainer.gpus if self.trainer.gpus else 1
+
+        train_batches = len(self.train_dataloader()) // num_devices
         total_epochs = self.trainer.max_epochs - self.trainer.min_epochs + 1
         total_train_steps = (total_epochs * train_batches) // self.trainer.accumulate_grad_batches
 
-        no_decay = ["bias", "LayerNorm.weight"]
-
-        # These parameters are copied from the original code
-        optimizer_grouped_parameters = [
-            {
-                "params": [
-                    p for n, p in self.model_debias.named_parameters()
-                    if not any(nd in n for nd in no_decay)
-                ],
-                "weight_decay": self.weight_decay,
-            },
-            {
-                "params": [
-                    p for n, p in self.model_debias.named_parameters()
-                    if any(nd in n for nd in no_decay)
-                ],
-                "weight_decay": 0.0
-            }
-        ]
-
         optimizer = AdamW(
-            optimizer_grouped_parameters,
+            self.model_debias.parameters(),
+            weight_decay=self.weight_decay,
             lr=self.learning_rate,
             eps=self.adam_eps
         )
