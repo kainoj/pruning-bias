@@ -13,8 +13,6 @@ class AttributesWithSentencesDataset(Dataset):
     Args:
         sentences: list of sentences
         attributes: attributes for each sentence
-        subset: for each sentence, to which group (eg male/female) does the
-            attributes belong?
         tokenizer: 🤗
 
     Returns: a dict with the following keys:
@@ -27,14 +25,12 @@ class AttributesWithSentencesDataset(Dataset):
         self,
         sentences: List[str],
         attributes: List[set[str]],
-        subset: List[int],
         tokenizer
     ) -> None:
         super().__init__()
 
         self.sentences = sentences
         self.attributes = attributes
-        self.subset = subset
         self.tokenizer = tokenizer
 
         log.info(f"Total sentences with attributes: {len(self.sentences)}")
@@ -45,7 +41,6 @@ class AttributesWithSentencesDataset(Dataset):
     def __getitem__(self, idx):
         sentence = self.sentences[idx]
         attributes = ' '.join(list(self.attributes[idx]))
-        subset = self.subset[idx]
 
         # Tokenize the sentence and make sure that every tensor is of shape
         # 'max_length' (so it batchifies properly)
@@ -64,6 +59,5 @@ class AttributesWithSentencesDataset(Dataset):
         mask = (sentence_tokens == attribute_tokens).sum(0)
 
         payload['attribute_mask'] = mask
-        payload['attribute_gender'] = subset
 
         return payload

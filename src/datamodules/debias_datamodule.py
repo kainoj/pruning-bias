@@ -73,7 +73,8 @@ class DebiasDataModule(LightningDataModule):
             data = pickle.load(f)
 
         # "We randomly sampled 1,000 sentences from each type of extracted
-        # sentences as development data". Here Male&Female are our "attributes"
+        # sentences as development data".
+        # Here, Male&Female are our "attributes"
         m_train_sents, m_val_sents, m_train_attr, m_val_attr = train_test_split(
             data['male_sents'], data['male_sents_attr'], test_size=1000
         )
@@ -85,73 +86,120 @@ class DebiasDataModule(LightningDataModule):
             data['stereo_sents'], data['stereo_sents_trgt'], test_size=1000
         )
 
-        self.data_train = SentencesWithTargetsDatset(
+        # Targets (stereotypes)
+        self.targets_train = SentencesWithTargetsDatset(
             sentences=s_train_sents,
             targets_in_sentences=s_train_trgt,
             tokenizer=self.tokenizer
         )
-        self.data_val = SentencesWithTargetsDatset(
+        self.targets_val = self.data_val = SentencesWithTargetsDatset(
             sentences=s_val_sents,
             targets_in_sentences=s_val_trgt,
             tokenizer=self.tokenizer
         )
-        self.attributes_data = AttributesWithSentencesDataset(
-            sentences=[*m_train_sents, *f_train_sents],
-            attributes=[*m_train_attr, *f_train_attr],
-            subset=([0] * len(m_train_sents) + [1] * len(f_train_sents)),
+
+        # Attributes
+        self.attributes_male_train = AttributesWithSentencesDataset(
+            sentences=m_train_sents,
+            attributes=m_train_attr,
+            tokenizer=self.tokenizer
+        )
+        self.attributes_female_train = AttributesWithSentencesDataset(
+            sentences=f_train_sents,
+            attributes=f_train_attr,
+            tokenizer=self.tokenizer
+        )
+        self.attributes_male_val = AttributesWithSentencesDataset(
+            sentences=m_val_sents,
+            attributes=m_val_attr,
+            tokenizer=self.tokenizer
+        )
+        self.attributes_female_val = AttributesWithSentencesDataset(
+            sentences=f_val_sents,
+            attributes=f_val_attr,
             tokenizer=self.tokenizer
         )
 
-        # Merge splitted M/F/S data into one
-        # train_text = [*m_train_sents, *f_train_sents, *s_train_sents]
-        # val_text = [*m_val_sents, *f_val_sents, *s_val_sents]
-
-        # train_attr = [*m_train_attr, *f_train_attr, *s_train_attr]
-        # val_attr = [*m_val_attr, *f_val_attr, *s_val_attr]
-
+        # SEAT Metric data (SEAT 6, 7 and 8)
         self.seat_datasets = {
             name: WeatDataset(data_filename=path, tokenizer=self.tokenizer)
             for name, path in self.seat_data.items()
         }
 
     def train_dataloader(self):
-        targets = DataLoader(
-            dataset=self.data_train,
-            batch_size=self.batch_size,
-            shuffle=True
-        )
-        attributes = DataLoader(
-            dataset=self.attributes_data,
-            batch_size=self.batch_size,
-            shuffle=True
-        )
+        """Train dataloader returns pairs of (target, attribute) embeddings."""
+        targets = self.targets_train_dataloader()
+        attributes = self.attributes_train_dataloader()
         return {"targets": targets, "attributes": attributes}
 
     def val_dataloader(self):
-        """Validation dataloader returns pairs of (target, attribute) embeddings."""
-        targets = DataLoader(
-            dataset=self.data_val,
-            batch_size=self.batch_size,
-            shuffle=False
-        )
-        attributes = DataLoader(
-            dataset=self.attributes_data,
-            batch_size=self.batch_size,
-            shuffle=False
-        )
+        """Validation dataloader returns pairs of (target, attribute) embeddings.
+
+        `min_cycle` along with `shuffle=True` results in sampling a random
+        subsets of equal size of male and female attributes, in every epoch.
+        """
+        targets = self.targets_val_dataloader()
+        attributes = self.attributes_val_dataloader()
         return CombinedLoader(
             {"targets": targets, "attributes": attributes},
-            "max_size_cycle"
+            "min_size"
         )
 
-    def attributes_dataloader(self):
-        """This dataloader is used to compute static embeddigs of the attributes."""
+    # Targets
+    def targets_train_dataloader(self):
         return DataLoader(
-            dataset=self.attributes_data,
+            dataset=self.targets_train,
             batch_size=self.batch_size,
-            shuffle=False
+            shuffle=True,
         )
 
+    def targets_val_dataloader(self):
+        return DataLoader(
+            dataset=self.targets_val,
+            batch_size=self.batch_size,
+            shuffle=False,
+        )
+
+    # Attributes
+    def attributes_train_dataloader(self):
+        """This dataloader is used in the training step
+        as well as in the computation fo non-contextualized embeddings.
+
+        `min_cycle` along with `shuffle=True` results in sampling a random
+        subsets of equal size of male and female attributes, in every epoch.
+        """
+        male = DataLoader(
+            dataset=self.attributes_male_train,
+            batch_size=self.batch_size,
+            shuffle=True,
+        )
+        female = DataLoader(
+            dataset=self.attributes_female_train,
+            batch_size=self.batch_size,
+            shuffle=True,
+        )
+        return CombinedLoader(
+            {"male": male, "female": female},
+            "min_size"
+        )
+
+    def attributes_val_dataloader(self):
+        male = DataLoader(
+            dataset=self.attributes_male_val,
+            batch_size=self.batch_size,
+            shuffle=False,
+        )
+        female = DataLoader(
+            dataset=self.attributes_female_val,
+            batch_size=self.batch_size,
+            shuffle=False,
+        )
+        return CombinedLoader(
+            {"male": male, "female": female},
+            "min_size"
+        )
+
+    # SEAT
     def seat_dataloaders(self):
         """Dataloaders for SEAT metrices (currently unused)."""
         return [
