@@ -53,27 +53,24 @@ class Debiaser(LightningModule):
     def on_train_epoch_start(self) -> None:
         datamodule = self.trainer.datamodule
 
-        log.info(f'Computing non-contextualized embeddings on'
-                 f' {len(datamodule.attributes_data.sentences)} sentences.')
+        log.info('Computing non-contextualized embeddings...')
 
         non_contextualized_acc = torch.zeros((2, 768), device=self.device)
         non_contextualized_cntr = torch.zeros((2, 1), device=self.device)
 
         with torch.no_grad():
-            for sents in tqdm(datamodule.attributes_dataloader()):
+            for batch in tqdm(datamodule.attributes_train_dataloader()):
 
-                sents = {key: val.to(self.device) for key, val in sents.items()}
+                m_sents = {key: val.to(self.device) for key, val in batch['male'].items()}
+                f_sents = {key: val.to(self.device) for key, val in batch['female'].items()}
 
-                # Outputs contains only contextualized word embs for attributes
-                outputs = self(sents, return_word_embs=True)
+                for i, sents in enumerate([m_sents, f_sents]):
+                    # Outputs contains only contextualized word embs for attributes
+                    outputs = self(sents, return_word_embs=True)
 
-                attribute_ids = sents['attribute_gender']
-
-                assert outputs.shape[0] == attribute_ids.shape[0]
-
-                for attr_id, out in zip(attribute_ids, outputs):
-                    non_contextualized_acc[attr_id] += out
-                    non_contextualized_cntr[attr_id] += 1
+                    for out in outputs:
+                        non_contextualized_acc[i] += out
+                        non_contextualized_cntr[i] += 1
 
             self.non_contextualized = non_contextualized_acc / non_contextualized_cntr
             self.non_contextualized.requires_grad_(False)
@@ -86,7 +83,7 @@ class Debiaser(LightningModule):
     def forward(
         self, inputs, return_word_embs=False, embedding_layer=None
     ):
-        """Forward pass of the models to be debiased."""
+        """Forward pass of the model to be debiased."""
         return self.model_debias(inputs, return_word_embs, embedding_layer)
 
     def forward_original(
@@ -208,6 +205,7 @@ class Debiaser(LightningModule):
         self.log_loss(loss, 'validation')
 
     def configure_optimizers(self):
+        # TODO simplify it
         train_batches = len(self.train_dataloader()) // self.trainer.gpus
         total_epochs = self.trainer.max_epochs - self.trainer.min_epochs + 1
         total_train_steps = (total_epochs * train_batches) // self.trainer.accumulate_grad_batches

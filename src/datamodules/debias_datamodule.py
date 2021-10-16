@@ -3,8 +3,9 @@ from typing import Dict
 from pathlib import Path
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.trainer.supporters import CombinedLoader
+import torch
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset, Subset
 from torchtext.utils import download_from_url, extract_archive
 from sklearn.model_selection import train_test_split
 
@@ -127,43 +128,64 @@ class DebiasDataModule(LightningDataModule):
         }
 
     def train_dataloader(self):
-        """Train dataloader returns pairs of (target, attribute) embeddings."""
-        targets = self.targets_train_dataloader()
-        attributes = self.attributes_train_dataloader()
-        return {"targets": targets, "attributes": attributes}
+        """Train dataloader returns pairs of (target, attribute) embeddings.
 
-    def val_dataloader(self):
-        """Validation dataloader returns pairs of (target, attribute) embeddings.
-
-        `min_cycle` along with `shuffle=True` results in sampling a random
-        subsets of equal size of male and female attributes, in every epoch.
+        There is an equal number of male and female attributes,
+        sampled randomly from both sets.
         """
-        targets = self.targets_val_dataloader()
-        attributes = self.attributes_val_dataloader()
-        return CombinedLoader(
-            {"targets": targets, "attributes": attributes},
-            "min_size"
-        )
 
-    # Targets
-    def targets_train_dataloader(self):
-        return DataLoader(
+        attr_len = min(len(self.attributes_male_train), len(self.attributes_female_train))
+
+        male_indices = torch.randperm(len(self.attributes_male_train))[:attr_len]
+        female_indices = torch.randperm(len(self.attributes_female_train))[:attr_len]
+
+        attributes_dataset = ConcatDataset([
+            Subset(self.attributes_male_train, male_indices),
+            Subset(self.attributes_female_train, female_indices)
+        ])
+
+        attributes = DataLoader(
+            dataset=attributes_dataset,
+            batch_size=self.batch_size,
+            shuffle=True
+        )
+        targets = DataLoader(
             dataset=self.targets_train,
             batch_size=self.batch_size,
             shuffle=True,
         )
 
-    def targets_val_dataloader(self):
-        return DataLoader(
+        return {"targets": targets, "attributes": attributes}
+
+    def val_dataloader(self):
+        """Validation dataloader returns pairs of (target, attribute) embeddings.
+
+        We don't balance attributes here, as we did in the trainlaoder
+        (NB: they are already balanced).
+        """
+        attributes_data = ConcatDataset([
+            self.attributes_male_val,
+            self.attributes_female_val,
+        ])
+
+        targets = DataLoader(
             dataset=self.targets_val,
             batch_size=self.batch_size,
             shuffle=False,
         )
+        attributes = DataLoader(
+            dataset=attributes_data,
+            batch_size=self.batch_size,
+            shuffle=False,
+        )
 
-    # Attributes
+        return CombinedLoader(
+            {"targets": targets, "attributes": attributes},
+            "min_size"  # TODO?
+        )
+
     def attributes_train_dataloader(self):
-        """This dataloader is used in the training step
-        as well as in the computation fo non-contextualized embeddings.
+        """This dataloader is used in the computation of non-contextualized embeddings.
 
         `min_cycle` along with `shuffle=True` results in sampling a random
         subsets of equal size of male and female attributes, in every epoch.
@@ -177,22 +199,6 @@ class DebiasDataModule(LightningDataModule):
             dataset=self.attributes_female_train,
             batch_size=self.batch_size,
             shuffle=True,
-        )
-        return CombinedLoader(
-            {"male": male, "female": female},
-            "min_size"
-        )
-
-    def attributes_val_dataloader(self):
-        male = DataLoader(
-            dataset=self.attributes_male_val,
-            batch_size=self.batch_size,
-            shuffle=False,
-        )
-        female = DataLoader(
-            dataset=self.attributes_female_val,
-            batch_size=self.batch_size,
-            shuffle=False,
         )
         return CombinedLoader(
             {"male": male, "female": female},

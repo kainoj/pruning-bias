@@ -19,7 +19,6 @@ class AttributesWithSentencesDataset(Dataset):
         input_ids, attention_mask: standard 🤗's tokenizer output.
         attribute_mask: mask indicating on which position in tokenized
             sequenced are the attributes.
-        attribute_gender: gender of an attribute 0/1
     """
     def __init__(
         self,
