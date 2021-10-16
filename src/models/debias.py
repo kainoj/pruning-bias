@@ -51,9 +51,18 @@ class Debiaser(LightningModule):
         self.compute_seat()
 
     def on_train_epoch_start(self) -> None:
-        datamodule = self.trainer.datamodule
+        self.non_contextualized = self.get_non_contextualized()
 
+    def on_validation_start(self):
+        self.compute_seat()
+
+    def get_non_contextualized(self) -> torch.tensor:
+        """Returns only two embeddings, each being an average of male (female)
+        related attributes.
+        """
         log.info('Computing non-contextualized embeddings...')
+
+        datamodule = self.trainer.datamodule
 
         non_contextualized_acc = torch.zeros((2, 768), device=self.device)
         non_contextualized_cntr = torch.zeros((2, 1), device=self.device)
@@ -72,13 +81,12 @@ class Debiaser(LightningModule):
                         non_contextualized_acc[i] += out
                         non_contextualized_cntr[i] += 1
 
-            self.non_contextualized = non_contextualized_acc / non_contextualized_cntr
-            self.non_contextualized.requires_grad_(False)
+            non_contextualized = non_contextualized_acc / non_contextualized_cntr
+            non_contextualized.requires_grad_(False)
 
-        log.info(f"Got non-contextualized embeddings of shape {self.non_contextualized.shape}")
+        log.info(f"Got non-contextualized embeddings of shape {non_contextualized.shape}")
 
-    def on_validation_start(self):
-        self.compute_seat()
+        return non_contextualized
 
     def forward(
         self, inputs, return_word_embs=False, embedding_layer=None
