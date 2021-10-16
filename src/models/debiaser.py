@@ -77,9 +77,8 @@ class Debiaser(LightningModule):
                     # Outputs contains only contextualized word embs for attributes
                     outputs = self(sents, return_word_embs=True)
 
-                    for out in outputs:
-                        non_contextualized_acc[i] += out
-                        non_contextualized_cntr[i] += 1
+                    non_contextualized_acc[i] += outputs.sum(dim=0)
+                    non_contextualized_cntr[i] += outputs.shape[0]
 
             non_contextualized = non_contextualized_acc / non_contextualized_cntr
             non_contextualized.requires_grad_(False)
