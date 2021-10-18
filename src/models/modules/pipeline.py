@@ -38,7 +38,7 @@ class Pipeline(nn.Module):
         if embedding_layer == 'all':
             return torch.vstack(outputs.hidden_states)
 
-        raise NotImplementedError()
+        raise NotImplementedError('Choose embedding_layer from first|last|all|CLS.')
 
     def apply_output_mask(
             self, x: torch.tensor, mask: torch.tensor
