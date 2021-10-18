@@ -13,22 +13,26 @@ from src.models.modules.tokenizer import Tokenizer
 class AttributesDatasetTest(unittest.TestCase):
 
     def setUp(self) -> None:
-        attributes = [
-            "tokenizer",  # "tokenizer" gets tokenized to 2 tokens
-            "pizza"       # "pizza" gets tokenized to 1 token
+
+        sentences = [
+            "i like tokenizer", 
+            "tokenizer with pineapple",
+            "i like pizza pizza",
+            "pizza with pineapple",
         ]
-        sentences_of_attributes = [
-            ["i like tokenizer", "tokenizer with pineapple"],
-            ["i like pizza pizza", "pizza with pineapple"]
+
+        attributes = [
+            ["tokenizer"], ["tokenizer"], ["pizza"], ["pizza"]
         ]
 
         self.model_name = 'distilbert-base-uncased'
         self.tokenizer = Tokenizer(self.model_name)
+        self.pipeline = Pipeline(model_name=self.model_name, embedding_layer='last')
 
         self.ds = AttributesWithSentencesDataset(
+            sentences=sentences,
             attributes=attributes,
-            sentences_of_attributes=sentences_of_attributes,
-            tokenizer=self.tokenizer
+            tokenizer=self.tokenizer,
         )
 
     def test_ds_len(self):
@@ -44,12 +48,12 @@ class AttributesDatasetTest(unittest.TestCase):
         for ans, data in zip(answers, self.ds):
 
             # Extract tokens only for attributes
-            only_attribuets_tokens = torch.masked_select(
+            only_attributes_tokens = torch.masked_select(
                 data['input_ids'],             # Encodings of sentences
                 data['attribute_mask'].bool()  # Mask of attributes
             )
 
-            decoded_str = self.tokenizer.decode(only_attribuets_tokens)
+            decoded_str = self.tokenizer.decode(only_attributes_tokens)
 
             self.assertEqual(decoded_str, ans)
 
@@ -61,8 +65,6 @@ class AttributesDatasetTest(unittest.TestCase):
         3. In outputs, find non-zeroed embeddings (their positions)
         4. And check whether these embeddings correnspond to tokens in the mask
         """
-        pipeline = Pipeline(model_name=self.model_name, embedding_layer='last')
-
         dl = DataLoader(dataset=self.ds, batch_size=2, shuffle=False)
 
         # In total batches: 2 = 4 / 2 = len(ds) / batch_size
@@ -74,8 +76,8 @@ class AttributesDatasetTest(unittest.TestCase):
         sample_no = 0
 
         for batch in dl:
-            outputs = pipeline(batch)
-            outputs = pipeline.apply_output_mask(
+            outputs = self.pipeline(batch)
+            outputs = self.pipeline.apply_output_mask(
                 outputs, mask=batch['attribute_mask']
             )
 
@@ -90,17 +92,16 @@ class AttributesDatasetTest(unittest.TestCase):
 
                 original_tokens = self.ds[sample_no]['input_ids']
 
-                only_attribuets_tokens = torch.masked_select(
+                only_attributes_tokens = torch.masked_select(
                     original_tokens,  # Encodings of sentences
                     non_zeros_mask    # Mask of attributes
                 )
-                decoded_str = self.tokenizer.decode(only_attribuets_tokens)
+                decoded_str = self.tokenizer.decode(only_attributes_tokens)
                 self.assertEqual(decoded_str, answers[sample_no])
 
                 sample_no += 1
 
     def test_get_word_embeddings(self):
-        pipeline = Pipeline(model_name=self.model_name, embedding_layer='last')
 
         outs = torch.tensor([
             [
@@ -125,7 +126,7 @@ class AttributesDatasetTest(unittest.TestCase):
             [5.0, 5.0, 5.0, 5.0]
         ])
 
-        result = pipeline.get_word_embeddings(x=outs, mask=mask)
+        result = self.pipeline.get_word_embeddings(x=outs, mask=mask)
 
         self.assertTrue(torch.allclose(answer, result))
 
