@@ -39,7 +39,7 @@ class Debiaser(LightningModule):
         )
         self.model_original = Pipeline(
             model_name=self.model_name,
-            embedding_layer='all'  # TODO
+            embedding_layer='all'  # See Eq. (3)
         )
 
         self.tokenizer = Tokenizer(self.model_name)
@@ -133,10 +133,15 @@ class Debiaser(LightningModule):
         This is basically Eq.(4) in the paper.
 
         It computes debiasing loss with the regularizer term.
+
+        Note, that in the regularization term, embeddings are taken
+        across *all* layers in both models (see Eq. 3).
         """
         targets = self(batch["targets"])
-        # TODO embedding_layer =? 'all'
-        attributes = self(batch['attributes'], return_word_embs=True, embedding_layer='all')
+
+        attributes = self(
+            batch['attributes'], return_word_embs=True, embedding_layer='all'
+        )
         attributes_original = self.forward_original(
             batch['attributes'], return_word_embs=True, embedding_layer='all'
         )
