@@ -66,7 +66,7 @@ class Debiaser(LightningModule):
 
         datamodule = self.trainer.datamodule
 
-        non_contextualized_acc = torch.zeros((2, 768), device=self.device)
+        non_contextualized_acc = torch.zeros((2, self.model_debias.dim), device=self.device)
         non_contextualized_cntr = torch.zeros((2, 1), device=self.device)
 
         with torch.no_grad():
@@ -110,8 +110,8 @@ class Debiaser(LightningModule):
                 that were precomputed at the beginning of the epoch
             targets: contextualized embeddigs of targets of current batch
         """
-        attr = static_attributes.T         # (768, #attrs)
-        trgt = targets.reshape((-1, 768))  # (bsz*128, 768) # TODO get the dim
+        attr = static_attributes.T                           # (dim, #attrs)
+        trgt = targets.reshape((-1, self.model_debias.dim))  # (bsz*128, dim)
 
         # dot product -> sum rows -> square -> mean
         return torch.mm(trgt, attr).sum(1).pow(2).mean()

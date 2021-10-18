@@ -1,5 +1,6 @@
 from typing import Dict
 from transformers import AutoModel
+from src.utils.hidden_size import HIDDEN_SIZE
 import torch
 import torch.nn as nn
 
@@ -21,9 +22,15 @@ class Pipeline(nn.Module):
         """
         super().__init__()
 
+        self.model_name = model_name
         self.embedding_layer = embedding_layer
 
         self.model = AutoModel.from_pretrained(model_name)
+
+    @property
+    def dim(self):
+        """Embedding dimension."""
+        return HIDDEN_SIZE[self.model_name]
 
     def get_embeddings(self, outputs, embedding_layer) -> torch.tensor:
         if embedding_layer == 'CLS':
@@ -62,10 +69,6 @@ class Pipeline(nn.Module):
 
         y = x * mask.reshape(mask_size)
         return y
-
-    # @property
-    # def dim(self):
-    #     return self.model.config.dim
 
     # @property
     # def n_layers(self):
