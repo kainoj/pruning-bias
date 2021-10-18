@@ -15,7 +15,7 @@ class AttributesDatasetTest(unittest.TestCase):
     def setUp(self) -> None:
 
         sentences = [
-            "i like tokenizer", 
+            "i like tokenizer",
             "tokenizer with pineapple",
             "i like pizza pizza",
             "pizza with pineapple",
