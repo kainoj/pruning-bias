@@ -39,22 +39,24 @@ class Debiaser(LightningModule):
         )
         self.model_original = Pipeline(
             model_name=self.model_name,
-            embedding_layer='all'
+            embedding_layer='all'  # TODO
         )
 
         self.tokenizer = Tokenizer(self.model_name)
 
         # Non-contextualized embeddings are computed on the begining of each epoch
-        self.non_contextualized: torch.tensor
-
-    def on_train_start(self) -> None:
-        self.compute_seat()
+        self.non_contextualized: torch.tensor = None
 
     def on_train_epoch_start(self) -> None:
         self.non_contextualized = self.get_non_contextualized()
 
     def on_validation_start(self):
         self.compute_seat()
+        if self.non_contextualized is None:
+            # This will happen only on the very first val run,
+            # before the training even begins.
+            self.non_contextualized = self.get_non_contextualized()
+            log.info("Evaluating vanilla pre-trained model")
 
     def get_non_contextualized(self) -> torch.tensor:
         """Returns only two embeddings, each being an average of male (female)
@@ -171,7 +173,7 @@ class Debiaser(LightningModule):
         )
         self.log(
             f"{stage}/loss", loss["loss"],
-            prog_bar=True, on_epoch=True, sync_dist=True
+            prog_bar=False, on_epoch=True, sync_dist=True
         )
 
     def training_step(self, batch: Any, batch_idx: int):

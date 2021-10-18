@@ -71,6 +71,9 @@ def train(config: DictConfig) -> Optional[float]:
         logger=logger,
     )
 
+    # Evaluate -- get stats of the vanilla model
+    trainer.validate(model=model, datamodule=datamodule)
+
     # Train the model
     log.info("Starting training!")
     trainer.fit(model=model, datamodule=datamodule)
