@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict, List
 from pathlib import Path
 from collections import defaultdict
 from transformers import AutoTokenizer
@@ -23,14 +23,25 @@ def extract_data(
     rawdata_path: Path,
     male_attr_path: Path,
     female_attr_path: Path,
-    stereo_attr_path: Path,
+    stereo_target_path: Path,
     model_name: str
-) -> Any:
-    # TODO: refactor names so it's clear what's attribute and what's target
-    # Get lists of attributes
+) -> Dict[str: List[str]]:
+    """Extracts and pre-processes data.
+
+    Extracts sentences that contain particular words: male&female attributes
+    and stereotypes.
+
+    Args:
+        rawdata_path: path to a textfile with one sentence per line
+        {male, female}_attr_path: textfile with one keyword per line
+        stereo_target_path: textfile with one keyword per line
+        model_name: used to instantiate a tokenizer. Tokenizer is used only
+            to filter long sentences.
+    """
+    # Get lists of attributes and targets
     male_attr = get_attribute_set(male_attr_path)
     female_attr = get_attribute_set(female_attr_path)
-    stereo_trgt = get_attribute_set(stereo_attr_path)
+    stereo_trgt = get_attribute_set(stereo_target_path)
 
     # This regexp basically tokenizes a sentence over spaces and 's, 're, 've..
     # It's originally taken from OpenAI's GPT-2 Encoder implementation
@@ -58,7 +69,6 @@ def extract_data(
 
             # By filtering this way, we would loose only 13 samples, but then
             # we can set tokenizer max_len to 128 (faster!)
-            # TODO: verify numbers for different tokenizers!
             if len(tokenizer(line)['input_ids']) > 128:
                 continue
 

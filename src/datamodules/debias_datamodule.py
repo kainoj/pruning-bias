@@ -61,7 +61,7 @@ class DebiasDataModule(LightningDataModule):
                 rawdata_path=extracted_path,
                 male_attr_path=self.datafiles['attributes_male'],
                 female_attr_path=self.datafiles['attributes_female'],
-                stereo_attr_path=self.datafiles['targets_stereotypes'],
+                stereo_target_path=self.datafiles['targets_stereotypes'],
                 model_name=self.model_name
             )
             with open(self.cached_data_path, 'wb') as f:
