@@ -25,7 +25,7 @@ def extract_data(
     female_attr_path: Path,
     stereo_target_path: Path,
     model_name: str
-) -> Dict[str: List[str]]:
+) -> Dict[str, List[str]]:
     """Extracts and pre-processes data.
 
     Extracts sentences that contain particular words: male&female attributes
