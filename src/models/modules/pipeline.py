@@ -1,3 +1,4 @@
+from typing import Dict
 from transformers import AutoModel
 import torch
 import torch.nn as nn
@@ -12,11 +13,11 @@ class Pipeline(nn.Module):
             model_name: e.g.: `distilbert-base-uncased`
             embedding_layer: from where to get the embeddings?
                 Available: CLS|first|last|all
-                'CLS': sentence representation as embedding of [CLS] token
-                 (taken at the last hidden state)
-                'first':
-                'last':
-                'all':
+                'CLS': sentence representation as embedding of the [CLS] token
+                    (taken at the last hidden state)
+                'first': first layer
+                'last': last layer
+                'all': all layers, stacked vertically
         """
         super().__init__()
 
@@ -107,8 +108,20 @@ class Pipeline(nn.Module):
         # Eventually, we get the average of non-zero sub-tokens
         return subtoken_sum / number_non_zer_embs
 
-    def forward(self, sentences, return_word_embs=False, embedding_layer=None) -> torch.tensor:
-        # TODO: change sentences type to tokenized stuff
+    def forward(
+            self,
+            sentences: Dict[str, torch.tensor],
+            return_word_embs: bool = False,
+            embedding_layer: str = None,
+    ) -> torch.tensor:
+        """Feed forward the model.
+
+        Args:
+            sentences: tokenized sentence
+            return_word_embs: if true, extracts word embeddings indicated by
+                sentences['attribute_mask']
+            embedding_layer: first|last|all|CLS. If None, uses self.embedding_layer
+        """
         outputs = self.model(
             sentences['input_ids'],
             attention_mask=sentences['attention_mask'],
