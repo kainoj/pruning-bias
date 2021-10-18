@@ -70,12 +70,6 @@ class Pipeline(nn.Module):
         y = x * mask.reshape(mask_size)
         return y
 
-    # @property
-    # def n_layers(self):
-    #     # TODO: different model uses different var names,
-    #     #    eg. bert: confignum_hidden_layers
-    #     return self.model.config.n_layers
-
     def get_word_embeddings(
             self, x: torch.tensor, mask: torch.tensor
     ) -> torch.tensor:
