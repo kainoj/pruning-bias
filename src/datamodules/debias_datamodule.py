@@ -166,6 +166,11 @@ class DebiasDataModule(LightningDataModule):
 
         We don't balance attributes here, as we did in the trainlaoder
         (NB: they are already balanced).
+
+        - M/F attributes contain 1k elements each -> 2k attributes.
+        - There are 1k stereotype targets
+        - With "max_size_cycle", this dataloader will make the 1st cycle on
+          pairs (M, S), and the 2nd cycle on (F, S).
         """
         attributes_data = ConcatDataset([
             self.attributes_male_val,
@@ -185,7 +190,7 @@ class DebiasDataModule(LightningDataModule):
 
         return CombinedLoader(
             {"targets": targets, "attributes": attributes},
-            "min_size"  # TODO?
+            "max_size_cycle"
         )
 
     def attributes_train_dataloader(self):
