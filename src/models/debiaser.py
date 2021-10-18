@@ -133,6 +133,7 @@ class Debiaser(LightningModule):
         It computes debiasing loss with the regularizer term.
         """
         targets = self(batch["targets"])
+        # TODO embedding_layer =? 'all'
         attributes = self(batch['attributes'], return_word_embs=True, embedding_layer='all')
         attributes_original = self.forward_original(
             batch['attributes'], return_word_embs=True, embedding_layer='all'
