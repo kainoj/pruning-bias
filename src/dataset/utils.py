@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Dict, List
 from pathlib import Path
 from collections import defaultdict
 from transformers import AutoTokenizer
