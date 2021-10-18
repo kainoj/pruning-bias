@@ -132,7 +132,11 @@ class DebiasDataModule(LightningDataModule):
 
         There is an equal number of male and female attributes,
         sampled randomly from both sets.
+
+        Train dataloader is reloaded on every epoch when
+        `trainer.reload_dataloaders_every_n_epochs` is True.
         """
+        assert self.trainer.reload_dataloaders_every_n_epochs == 1
 
         attr_len = min(len(self.attributes_male_train), len(self.attributes_female_train))
 

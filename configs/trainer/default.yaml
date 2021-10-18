@@ -16,3 +16,6 @@ resume_from_checkpoint: null
 num_sanity_val_steps: 0
 
 val_check_interval: 0.5
+
+# With this, we would subsample dataset at every epoch
+reload_dataloaders_every_n_epochs: 1
