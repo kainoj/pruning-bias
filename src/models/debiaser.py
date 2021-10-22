@@ -220,7 +220,12 @@ class Debiaser(LightningModule):
         self.log_loss(loss, 'validation')
 
     def configure_optimizers(self):
-        num_devices = self.trainer.gpus if self.trainer.gpus else 1
+        num_devices = 1
+        if self.trainer.gpus is not None:
+            if isinstance(self.trainer.gpus, list):
+                num_devices = len(self.trainer.gpus)
+            else:
+                num_devices = self.trainer.gpus
 
         # Be carefull: trainlader is dict of loaders of equal length
         num_samples = len(self.train_dataloader()["targets"])
