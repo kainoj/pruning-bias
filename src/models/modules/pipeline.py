@@ -7,7 +7,7 @@ import torch.nn as nn
 
 class Pipeline(nn.Module):
 
-    def __init__(self, model_name: str, embedding_layer: str = 'last') -> None:
+    def __init__(self, model_name: str, embedding_layer: str, debias_mode: str) -> None:
         """Wrapper for 🤗's pipeline abstraction with custom embedding getter.
 
         Args:
@@ -19,11 +19,15 @@ class Pipeline(nn.Module):
                 'first': first layer
                 'last': last layer
                 'all': all layers, stacked vertically
+            debias_mode: sentence|token.
+                'sentence': retruns embeddings of the whole sentence.
+                'token': retruns words embeddings only, as indicated by 'attribute_mask'.
         """
         super().__init__()
 
         self.model_name = model_name
         self.embedding_layer = embedding_layer
+        self.return_word_embs = (debias_mode == 'token')
 
         self.model = AutoModel.from_pretrained(model_name)
 
@@ -45,7 +49,7 @@ class Pipeline(nn.Module):
         if embedding_layer == 'all':
             return torch.vstack(outputs.hidden_states)
 
-        raise NotImplementedError('Choose embedding_layer from first|last|all|CLS.')
+        raise NotImplementedError('embedding_layer must be first|last|all|CLS.')
 
     def apply_output_mask(
             self, x: torch.tensor, mask: torch.tensor
@@ -108,16 +112,17 @@ class Pipeline(nn.Module):
     def forward(
             self,
             sentences: Dict[str, torch.tensor],
-            return_word_embs: bool = False,
+            return_word_embs: bool = None,
             embedding_layer: str = None,
     ) -> torch.tensor:
         """Feed forward the model.
 
         Args:
             sentences: tokenized sentence
-            return_word_embs: if true, extracts word embeddings indicated by
-                sentences['attribute_mask']
-            embedding_layer: first|last|all|CLS. If None, uses self.embedding_layer
+            return_word_embs: if specified, shadows self.return_word_embs.
+                If True, extracts word embeddings indicated by sentences['attribute_mask'].
+            embedding_layer: if specified, shadows self.embedding_layer.
+                One of: first|last|all|CLS.
         """
         outputs = self.model(
             sentences['input_ids'],
@@ -127,9 +132,12 @@ class Pipeline(nn.Module):
 
         # Choose where to get embeddings from (first, last, all layers...)
         embedding_layer = self.embedding_layer if embedding_layer is None else embedding_layer
+
+        return_word_embs = self.return_word_embs if return_word_embs is None else return_word_embs
+
         embeddings = self.get_embeddings(outputs, embedding_layer)
 
-        if return_word_embs:
+        if return_word_embs and embedding_layer != 'CLS':
             return self.get_word_embeddings(
                 x=embeddings,
                 mask=sentences['attribute_mask']

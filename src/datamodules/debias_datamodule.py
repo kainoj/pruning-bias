@@ -11,7 +11,6 @@ from sklearn.model_selection import train_test_split
 
 from src.models.modules.tokenizer import Tokenizer
 from src.dataset.attributes_dataset import AttributesWithSentencesDataset
-from src.dataset.targets_dataset import SentencesWithTargetsDatset
 from src.dataset.utils import extract_data
 from src.dataset.weat_dataset import WeatDataset
 from src.metrics.seat import SEAT
@@ -88,14 +87,14 @@ class DebiasDataModule(LightningDataModule):
         )
 
         # Targets (stereotypes)
-        self.targets_train = SentencesWithTargetsDatset(
+        self.targets_train = AttributesWithSentencesDataset(
             sentences=s_train_sents,
-            targets_in_sentences=s_train_trgt,
+            attributes=s_train_trgt,
             tokenizer=self.tokenizer
         )
-        self.targets_val = self.data_val = SentencesWithTargetsDatset(
+        self.targets_val = self.data_val = AttributesWithSentencesDataset(
             sentences=s_val_sents,
-            targets_in_sentences=s_val_trgt,
+            attributes=s_val_trgt,
             tokenizer=self.tokenizer
         )
 

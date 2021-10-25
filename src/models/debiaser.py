@@ -22,7 +22,7 @@ class Debiaser(LightningModule):
 
     model_name: str
     embedding_layer: str
-    debias_mode: str  # for no only "sentence" TODO: "token"
+    debias_mode: str
     learning_rate: float
     weight_decay: float
     adam_eps: float
@@ -35,11 +35,13 @@ class Debiaser(LightningModule):
 
         self.model_debias = Pipeline(
             model_name=self.model_name,
-            embedding_layer=self.embedding_layer
+            embedding_layer=self.embedding_layer,
+            debias_mode=self.debias_mode
         )
         self.model_original = Pipeline(
             model_name=self.model_name,
-            embedding_layer='all'  # See Eq. (3)
+            embedding_layer='all',   # See Eq. (3)
+            debias_mode='sentence',  # See Eq. (3)
         )
 
         self.tokenizer = Tokenizer(self.model_name)
@@ -89,15 +91,11 @@ class Debiaser(LightningModule):
 
         return non_contextualized
 
-    def forward(
-        self, inputs, return_word_embs=False, embedding_layer=None
-    ):
+    def forward(self, inputs, return_word_embs=None, embedding_layer=None):
         """Forward pass of the model to be debiased."""
         return self.model_debias(inputs, return_word_embs, embedding_layer)
 
-    def forward_original(
-        self, inputs, return_word_embs=False, embedding_layer=None
-    ):
+    def forward_original(self, inputs, return_word_embs=None, embedding_layer=None):
         """Forward pass of the original model (frozen)."""
         with torch.no_grad():
             return self.model_original(inputs, return_word_embs, embedding_layer)
@@ -121,7 +119,7 @@ class Debiaser(LightningModule):
 
         Args: contextualied embeddings of attributes, wrt to debiased
             and original model, respectively. Both are of shape:
-                (batch_sz * n, emb_dim), where
+            (batch_sz * n, emb_dim), where
             n = num_layers if embedding_layer=='all' else 1.
         """
         assert attributes.shape == attributes_original.shape
@@ -134,7 +132,7 @@ class Debiaser(LightningModule):
 
         It computes debiasing loss with the regularizer term.
 
-        Note, that in the regularization term, embeddings are taken
+        Note, that in the regularization term, *word* embeddings are taken
         across *all* layers in both models (see Eq. 3).
         """
         targets = self(batch["targets"])
