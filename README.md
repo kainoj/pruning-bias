@@ -11,11 +11,12 @@ Think of _attributes_ as gender-related words (e.g man, woman), and _targets_ as
 ## How to run
 ```bash
 pip install -r requirements.txt
-python run.py +debiaser.model_name='distilbert-base-uncased'
+python run.py +debiaser.model_name='distilbert-base-uncased' +debiaser.embedding_layer='last'
 ```
 * The first run will download, process, and cache datasets.
 * By default, debiasing will run on a single GPU. For more options, see [configs](configs/). 
     * This project uses [hydra](https://hydra.cc/docs/intro#quick-start-guide) for config managements and [pytorch lightning](https://www.pytorchlightning.ai/) for training loops. 
+* You can choose `embedding_layer` ∈ {`first`, `last`, `all`}.
 * [WIP] You can choose `model_name` ∈ {`bert-base-uncased`, `distilbert-base-uncased`, ~~`roberta-base`~~, ~~`albert-base-v2`~~, ~~`google/electra-small-discriminator`~~}.
     * These are pre-trained [🤗 transformers](https://huggingface.co/).
 
