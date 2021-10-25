@@ -2,7 +2,7 @@ import unittest
 import torch
 
 from torch.utils.data import DataLoader
-from src.dataset.attributes_dataset import AttributesWithSentencesDataset
+from src.dataset.keywords_dataset import SentencesWithKeywordsDataset
 from src.models.modules.pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
 
@@ -29,9 +29,9 @@ class AttributesDatasetTest(unittest.TestCase):
         self.tokenizer = Tokenizer(self.model_name)
         self.pipeline = Pipeline(model_name=self.model_name, embedding_layer='last')
 
-        self.ds = AttributesWithSentencesDataset(
+        self.ds = SentencesWithKeywordsDataset(
             sentences=sentences,
-            attributes=attributes,
+            keywords=attributes,
             tokenizer=self.tokenizer,
         )
 

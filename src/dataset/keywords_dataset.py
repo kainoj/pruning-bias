@@ -7,12 +7,12 @@ from src.utils.utils import get_logger
 log = get_logger(__name__)
 
 
-class KeywordsWithSentencesDataset(Dataset):
-    """Dataset maintaining sentences and their attributes.
+class SentencesWithKeywordsDataset(Dataset):
+    """Returns tokenized sentence with a mask indicating position of keywords.
 
     Args:c
         sentences: list of sentences
-        attributes: attributes for each sentence
+        keywords: keywords for each sentence.
         tokenizer: 🤗
 
     Returns: a dict with the following keys:
@@ -23,13 +23,13 @@ class KeywordsWithSentencesDataset(Dataset):
     def __init__(
         self,
         sentences: List[str],
-        attributes: List[set[str]],
+        keywords: List[set[str]],
         tokenizer
     ) -> None:
         super().__init__()
 
         self.sentences = sentences
-        self.attributes = attributes
+        self.keywords = keywords
         self.tokenizer = tokenizer
 
         log.info(f"Total sentences with attributes: {len(self.sentences)}")
@@ -39,7 +39,7 @@ class KeywordsWithSentencesDataset(Dataset):
 
     def __getitem__(self, idx):
         sentence = self.sentences[idx]
-        attributes = ' '.join(list(self.attributes[idx]))
+        keywords = ' '.join(list(self.keywords[idx]))
 
         # Tokenize the sentence and make sure that every tensor is of shape
         # 'max_length' (so it batchifies properly)
@@ -50,12 +50,12 @@ class KeywordsWithSentencesDataset(Dataset):
         sentence_tokens = payload['input_ids']
 
         # Remove CLS/SEP and reshape, so it broadcasts nicely
-        attribute_tokens = self.tokenizer(attributes, padding=False)
-        attribute_tokens = attribute_tokens['input_ids'][:, 1:-1].reshape((-1, 1))
+        keyword_tokens = self.tokenizer(keywords, padding=False)
+        keyword_tokens = keyword_tokens['input_ids'][:, 1:-1].reshape((-1, 1))
 
         # Mask indicating positions of attributes within sentence econdings
         # Each row of (sent==attr) contains position of consecutive tokens
-        mask = (sentence_tokens == attribute_tokens).sum(0)
+        mask = (sentence_tokens == keyword_tokens).sum(0)
 
         payload['attribute_mask'] = mask
 
