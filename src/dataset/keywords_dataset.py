@@ -17,7 +17,7 @@ class SentencesWithKeywordsDataset(Dataset):
 
     Returns: a dict with the following keys:
         input_ids, attention_mask: standard 🤗's tokenizer output.
-        attribute_mask: mask indicating on which position in tokenized
+        keyword_mask: mask indicating on which position in tokenized
             sequenced are the attributes.
     """
     def __init__(
@@ -57,6 +57,6 @@ class SentencesWithKeywordsDataset(Dataset):
         # Each row of (sent==attr) contains position of consecutive tokens
         mask = (sentence_tokens == keyword_tokens).sum(0)
 
-        payload['attribute_mask'] = mask
+        payload['keyword_mask'] = mask
 
         return payload

@@ -21,7 +21,7 @@ class Pipeline(nn.Module):
                 'all': all layers, stacked vertically
             debias_mode: sentence|token.
                 'sentence': retruns embeddings of the whole sentence.
-                'token': retruns words embeddings only, as indicated by 'attribute_mask'.
+                'token': retruns words embeddings only, as indicated by 'keyword_mask'.
         """
         super().__init__()
 
@@ -120,7 +120,7 @@ class Pipeline(nn.Module):
         Args:
             sentences: tokenized sentence
             return_word_embs: if specified, shadows self.return_word_embs.
-                If True, extracts word embeddings indicated by sentences['attribute_mask'].
+                If True, extracts word embeddings indicated by sentences['keyword_mask'].
             embedding_layer: if specified, shadows self.embedding_layer.
                 One of: first|last|all|CLS.
         """
@@ -140,7 +140,7 @@ class Pipeline(nn.Module):
         if return_word_embs and embedding_layer != 'CLS':
             return self.get_word_embeddings(
                 x=embeddings,
-                mask=sentences['attribute_mask']
+                mask=sentences['keyword_mask']
             )
 
         return embeddings

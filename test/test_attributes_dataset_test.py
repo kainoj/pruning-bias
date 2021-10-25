@@ -50,7 +50,7 @@ class AttributesDatasetTest(unittest.TestCase):
             # Extract tokens only for attributes
             only_attributes_tokens = torch.masked_select(
                 data['input_ids'],             # Encodings of sentences
-                data['attribute_mask'].bool()  # Mask of attributes
+                data['keyword_mask'].bool()  # Mask of attributes
             )
 
             decoded_str = self.tokenizer.decode(only_attributes_tokens)
@@ -78,7 +78,7 @@ class AttributesDatasetTest(unittest.TestCase):
         for batch in dl:
             outputs = self.pipeline(batch)
             outputs = self.pipeline.apply_output_mask(
-                outputs, mask=batch['attribute_mask']
+                outputs, mask=batch['keyword_mask']
             )
 
             # Output shape must have not been changed
