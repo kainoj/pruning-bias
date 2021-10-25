@@ -32,6 +32,7 @@ class Debiaser(LightningModule):
 
     def __post_init__(self):
         super().__init__()
+        self.save_hyperparameters()
 
         self.model_debias = Pipeline(
             model_name=self.model_name,
