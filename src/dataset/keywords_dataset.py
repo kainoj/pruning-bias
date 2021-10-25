@@ -7,10 +7,10 @@ from src.utils.utils import get_logger
 log = get_logger(__name__)
 
 
-class AttributesWithSentencesDataset(Dataset):
+class KeywordsWithSentencesDataset(Dataset):
     """Dataset maintaining sentences and their attributes.
 
-    Args:
+    Args:c
         sentences: list of sentences
         attributes: attributes for each sentence
         tokenizer: 🤗

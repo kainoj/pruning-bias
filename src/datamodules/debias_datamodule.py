@@ -10,7 +10,7 @@ from torchtext.utils import download_from_url, extract_archive
 from sklearn.model_selection import train_test_split
 
 from src.models.modules.tokenizer import Tokenizer
-from src.dataset.attributes_dataset import AttributesWithSentencesDataset
+from src.dataset.keywords_dataset import KeywordsWithSentencesDataset
 from src.dataset.utils import extract_data
 from src.dataset.weat_dataset import WeatDataset
 from src.metrics.seat import SEAT
@@ -87,34 +87,34 @@ class DebiasDataModule(LightningDataModule):
         )
 
         # Targets (stereotypes)
-        self.targets_train = AttributesWithSentencesDataset(
+        self.targets_train = KeywordsWithSentencesDataset(
             sentences=s_train_sents,
             attributes=s_train_trgt,
             tokenizer=self.tokenizer
         )
-        self.targets_val = self.data_val = AttributesWithSentencesDataset(
+        self.targets_val = self.data_val = KeywordsWithSentencesDataset(
             sentences=s_val_sents,
             attributes=s_val_trgt,
             tokenizer=self.tokenizer
         )
 
         # Attributes
-        self.attributes_male_train = AttributesWithSentencesDataset(
+        self.attributes_male_train = KeywordsWithSentencesDataset(
             sentences=m_train_sents,
             attributes=m_train_attr,
             tokenizer=self.tokenizer
         )
-        self.attributes_female_train = AttributesWithSentencesDataset(
+        self.attributes_female_train = KeywordsWithSentencesDataset(
             sentences=f_train_sents,
             attributes=f_train_attr,
             tokenizer=self.tokenizer
         )
-        self.attributes_male_val = AttributesWithSentencesDataset(
+        self.attributes_male_val = KeywordsWithSentencesDataset(
             sentences=m_val_sents,
             attributes=m_val_attr,
             tokenizer=self.tokenizer
         )
-        self.attributes_female_val = AttributesWithSentencesDataset(
+        self.attributes_female_val = KeywordsWithSentencesDataset(
             sentences=f_val_sents,
             attributes=f_val_attr,
             tokenizer=self.tokenizer
