@@ -220,13 +220,13 @@ class Debiaser(LightningModule):
 
     def configure_optimizers(self):
         num_devices = 1
-        if self.trainer.gpus is not None:
+        if self.trainer.gpus and self.trainer.gpus > 0:
             if isinstance(self.trainer.gpus, list):
                 num_devices = len(self.trainer.gpus)
             else:
                 num_devices = self.trainer.gpus
 
-        # Be carefull: trainlader is dict of loaders of equal length
+        # Be carefull: trainloader is a dict of loaders of equal length
         num_samples = len(self.train_dataloader()["targets"])
         train_batches = num_samples // num_devices
         total_epochs = self.trainer.max_epochs - self.trainer.min_epochs + 1
