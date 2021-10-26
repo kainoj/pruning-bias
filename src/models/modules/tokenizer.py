@@ -17,7 +17,7 @@ class Tokenizer():
             padding=padding,
             truncation=True,
             max_length=self.max_length,
-            return_tensors="pt"
+            # return_tensors="pt"
         )
 
     def decode(self, x):

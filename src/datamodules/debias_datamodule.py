@@ -3,20 +3,18 @@ from typing import Dict
 from pathlib import Path
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.trainer.supporters import CombinedLoader
+from datasets import load_from_disk
 import torch
 
 from torch.utils.data import DataLoader, ConcatDataset, Subset
 from torchtext.utils import download_from_url, extract_archive
-from sklearn.model_selection import train_test_split
 
 from src.models.modules.tokenizer import Tokenizer
-from src.dataset.keywords_dataset import SentencesWithKeywordsDataset
 from src.dataset.utils import extract_data
 from src.dataset.weat_dataset import WeatDataset
 from src.metrics.seat import SEAT
 from src.utils.utils import get_logger
 
-import pickle
 
 log = get_logger(__name__)
 
@@ -30,9 +28,6 @@ class DebiasDataModule(LightningDataModule):
     datafiles: Dict[str, str]
     seat_data: Dict[str, str]
 
-    # Filename to where cache data at
-    cached_data_path: str
-
     def __post_init__(self):
         super().__init__()
         self.tokenizer = Tokenizer(self.model_name)
@@ -42,83 +37,41 @@ class DebiasDataModule(LightningDataModule):
         self.seat_metric = {name: SEAT() for name in self.seat_data.keys()}
 
     def prepare_data(self):
-        extracted_path: Path  # One of the urls must be .gz
-
         for name, url in self.datafiles.items():
-            print(url)
-            datafiles = download_from_url(url, root=self.data_dir)
-            self.datafiles[name] = datafiles
-            if datafiles.endswith('.gz'):
-                extracted_path = Path(datafiles).with_suffix('.txt').name
-                extracted_path = extract_archive(datafiles, extracted_path)[0]
+            download_path = download_from_url(url, root=self.data_dir)
+            self.datafiles[name] = download_path
+            if download_path.endswith('.gz'):
+                extracted_path = extract_archive(download_path, self.data_dir)[0]
+                # TODO: this fails when preparing data on multi-GPU
+                self.datafiles[name] = extracted_path
 
-        # If data not cached, extract it and cache to a file
-        if not Path(self.cached_data_path).exists():
-            log.info(f'Extracting data from {extracted_path} '
-                     f'and caching into {self.cached_data_path}')
-            data = extract_data(
-                rawdata_path=extracted_path,
-                male_attr_path=self.datafiles['attributes_male'],
-                female_attr_path=self.datafiles['attributes_female'],
-                stereo_target_path=self.datafiles['targets_stereotypes'],
-                model_name=self.model_name
-            )
-            with open(self.cached_data_path, 'wb') as f:
-                pickle.dump(data, f)
+        # The first call will cache the data
+        extract_data(
+            rawdata_path=self.datafiles['plaintext'],
+            male_attr_path=self.datafiles['attributes_male'],
+            female_attr_path=self.datafiles['attributes_female'],
+            stereo_target_path=self.datafiles['targets_stereotypes'],
+            model_name=self.model_name,
+            data_root=self.data_dir
+        )
 
     def setup(self, stage):
-        # Restore data from cache now
-        log.info(f'Loading cached data from {self.cached_data_path}')
-        with open(str(self.cached_data_path), 'rb') as f:
-            data = pickle.load(f)
-
-        # "We randomly sampled 1,000 sentences from each type of extracted
-        # sentences as development data".
-        # Here, Male&Female are our "attributes"
-        m_train_sents, m_val_sents, m_train_attr, m_val_attr = train_test_split(
-            data['male_sents'], data['male_sents_attr'], test_size=1000
-        )
-        f_train_sents, f_val_sents, f_train_attr, f_val_attr = train_test_split(
-            data['female_sents'], data['female_sents_attr'], test_size=1000
-        )
-        # Steretypes are our "targets"
-        s_train_sents, s_val_sents, s_train_trgt, s_val_trgt = train_test_split(
-            data['stereo_sents'], data['stereo_sents_trgt'], test_size=1000
-        )
+        # Data is cached to disc now
+        data = {
+            "male": load_from_disk(self.data_dir / "dataset" / "male"),
+            "female": load_from_disk(self.data_dir / "dataset" / "female"),
+            "target": load_from_disk(self.data_dir / "dataset" / "stereotype"),
+        }
 
         # Targets (stereotypes)
-        self.targets_train = SentencesWithKeywordsDataset(
-            sentences=s_train_sents,
-            keywords=s_train_trgt,
-            tokenizer=self.tokenizer
-        )
-        self.targets_val = self.data_val = SentencesWithKeywordsDataset(
-            sentences=s_val_sents,
-            keywords=s_val_trgt,
-            tokenizer=self.tokenizer
-        )
+        self.targets_train = data['target']['train']
+        self.targets_val = data['target']['test']
 
         # Attributes
-        self.attributes_male_train = SentencesWithKeywordsDataset(
-            sentences=m_train_sents,
-            keywords=m_train_attr,
-            tokenizer=self.tokenizer
-        )
-        self.attributes_female_train = SentencesWithKeywordsDataset(
-            sentences=f_train_sents,
-            keywords=f_train_attr,
-            tokenizer=self.tokenizer
-        )
-        self.attributes_male_val = SentencesWithKeywordsDataset(
-            sentences=m_val_sents,
-            keywords=m_val_attr,
-            tokenizer=self.tokenizer
-        )
-        self.attributes_female_val = SentencesWithKeywordsDataset(
-            sentences=f_val_sents,
-            keywords=f_val_attr,
-            tokenizer=self.tokenizer
-        )
+        self.attributes_male_train = data['male']['train']
+        self.attributes_female_train = data['male']['test']
+        self.attributes_male_val = data['female']['train']
+        self.attributes_female_val = data['female']['test']
 
         # SEAT Metric data (SEAT 6, 7 and 8)
         self.seat_datasets = {

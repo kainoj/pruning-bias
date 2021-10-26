@@ -1,14 +1,15 @@
 from typing import Dict, List
 from pathlib import Path
-from collections import defaultdict
-from transformers import AutoTokenizer
-from tqdm import tqdm
+from datasets import load_dataset
+from src.models.modules.tokenizer import Tokenizer
+from datasets.utils.logging import set_verbosity_error
 
 import regex as re
+import torch
 
 
-def get_attribute_set(filepath: str) -> set:
-    """Reads file with attributes and returns a set containing them all"""
+def get_keyword_set(filepath: str) -> set:
+    """Reads file with keywords and returns a set containing them all"""
 
     # This is cumbersome: hydra creates own build dir,
     # where data/ is not present. We need to escape to original cwd
@@ -24,9 +25,10 @@ def extract_data(
     male_attr_path: Path,
     female_attr_path: Path,
     stereo_target_path: Path,
-    model_name: str
+    model_name: str,
+    data_root: Path,
 ) -> Dict[str, List[str]]:
-    """Extracts and pre-processes data.
+    """Extracts, pre-processes and caches data.
 
     Extracts sentences that contain particular words: male&female attributes
     and stereotypes.
@@ -35,77 +37,106 @@ def extract_data(
         rawdata_path: path to a textfile with one sentence per line
         {male, female}_attr_path: textfile with one keyword per line
         stereo_target_path: textfile with one keyword per line
-        model_name: used to instantiate a tokenizer. Tokenizer is used only
-            to filter long sentences.
+        model_name: used to instantiate a tokenizer.
+        data_root: where to cache the data.
     """
     # Get lists of attributes and targets
-    male_attr = get_attribute_set(male_attr_path)
-    female_attr = get_attribute_set(female_attr_path)
-    stereo_trgt = get_attribute_set(stereo_target_path)
+    male_attr = get_keyword_set(male_attr_path)
+    female_attr = get_keyword_set(female_attr_path)
+    stereo_trgt = get_keyword_set(stereo_target_path)
+
+    tokenizer = Tokenizer(model_name)
 
     # This regexp basically tokenizes a sentence over spaces and 's, 're, 've..
     # It's originally taken from OpenAI's GPT-2 Encoder implementation
-    pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")  # noqa E501
+    pattern = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")  # noqa E501
 
-    # Each sentences of the list contains at least one of M/F/S attribute
-    male_sents, female_sents, stereo_sents = [], [], []
+    np = 64
+    # https://huggingface.co/docs/datasets/process.html#save
+    set_verbosity_error()
+    dataset = load_dataset('text', data_files=rawdata_path, split="train[:]")
+    dataset = dataset.map(
+        lambda examples: get_keyword(examples, male_attr, female_attr, stereo_trgt, pattern),
+        num_proc=np
+    )
+    dataset = dataset.filter(lambda examples: examples['type'] != 'none', num_proc=np)
+    dataset = dataset.map(lambda examples: tokenizer(examples['text']), num_proc=np)
+    dataset = dataset.map(lambda examples: get_keyword_mask(examples, tokenizer), num_proc=np)
 
-    # i-th element tells us which attributes/targets are in the i-th sentence
-    male_sents_attr, female_sents_attr, stereo_sents_trgt = [], [], []
+    male = dataset.filter(lambda example: example['type'] == 'male', num_proc=np)
+    female = dataset.filter(lambda example: example['type'] == 'female', num_proc=np)
+    stereo = dataset.filter(lambda example: example['type'] == 'stereotype', num_proc=np)
 
-    # Dictionary mapping attributes to sentences containing that attributes
-    attr2sents = defaultdict(list)
+    male = male.train_test_split(test_size=1000)
+    female = female.train_test_split(test_size=1000)
+    target = stereo.train_test_split(test_size=1000)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    male.set_format(type='torch', columns=['input_ids', 'attention_mask', 'keyword_mask'])
+    female.set_format(type='torch', columns=['input_ids', 'attention_mask', 'keyword_mask'])
+    target.set_format(type='torch', columns=['input_ids', 'attention_mask', 'keyword_mask'])
 
-    with open(rawdata_path) as f:
-        for full_line in tqdm(f.readlines()):
+    male.save_to_disk(data_root / "dataset" / "male")
+    female.save_to_disk(data_root / "dataset" / "female")
+    target.save_to_disk(data_root / "dataset" / "stereotype")
 
-            line = full_line.strip()
+    return {"male": male, "female": female, "stereotype": target}
 
-            # # This is how they decied to filter out data in the paper
-            # if len(line) < 1 or len(line.split()) > 128 or len(line.split()) <= 1:
-            #     continue
 
-            # By filtering this way, we would loose only 13 samples, but then
-            # we can set tokenizer max_len to 128 (faster!)
-            if len(tokenizer(line)['input_ids']) > 128:
-                continue
+def get_keyword(example, male_attr, female_attr, stereo_trgt, pattern):
+    line = example['text']
 
-            line_tokenized = {token.strip().lower() for token in re.findall(pat, line)}
+    keywords = []
 
-            # Dicts containing M/F/S attributes/targets in each sentence
-            male = line_tokenized & male_attr
-            female = line_tokenized & female_attr
-            stereo = line_tokenized & stereo_trgt
+    line = line.strip()
+    line_tokenized = {token.strip().lower() for token in re.findall(pattern, line)}
 
-            # Note that a sentence might contain attributes of only one category
-            #   M/F/S. That's why we check for emptiness of other sets.
+    # Dicts containing M/F/S attributes/targets in each sentence
+    male = line_tokenized & male_attr
+    female = line_tokenized & female_attr
+    stereo = line_tokenized & stereo_trgt
 
-            # Sentences with male attributes
-            if len(male) > 0 and len(female) == 0:
-                male_sents.append(line)
-                male_sents_attr.append(male)
+    keyword_type = "none"
 
-                for m in male:
-                    attr2sents[m].append(line)
+    # Note that a sentence might contain attributes of only one category
+    #   M/F/S. That's why we check for emptiness of other sets.
 
-            # Sentences with female attributes
-            if len(female) > 0 and len(male) == 0:
-                female_sents.append(line)
-                female_sents_attr.append(female)
+    # Sentences with male attributes
+    if len(male) > 0 and len(female) == 0:
+        keywords.extend(male)
+        keyword_type = "male"
 
-                for f in female:
-                    attr2sents[f].append(line)
+    # Sentences with female attributes
+    if len(female) > 0 and len(male) == 0:
+        keywords.extend(female)
+        keyword_type = "female"
 
-            # Sentences with stereotype target
-            if len(stereo) > 0 and len(male) == 0 and len(female) == 0:
-                stereo_sents.append(line)
-                stereo_sents_trgt.append(stereo)
+    # Sentences with stereotype target
+    if len(stereo) > 0 and len(male) == 0 and len(female) == 0:
+        keywords.extend(stereo)
+        keyword_type = "stereotype"
 
-    return {
-        'male_sents': male_sents, 'male_sents_attr': male_sents_attr,
-        'female_sents': female_sents, 'female_sents_attr': female_sents_attr,
-        'stereo_sents': stereo_sents, 'stereo_sents_trgt': stereo_sents_trgt,
-        'attributes': attr2sents
-    }
+    example['keywords'] = keywords
+    example['type'] = keyword_type
+
+    return example
+
+
+def get_keyword_mask(example, tokenizer):
+
+    sentence_tokens = example['input_ids']
+    keywords = ' '.join(example['keywords'])
+
+    # Remove CLS/SEP and reshape, so it broadcasts nicely
+    keyword_tokens = tokenizer(keywords, padding=False)
+    keyword_tokens = torch.tensor(keyword_tokens['input_ids'])
+    keyword_tokens = keyword_tokens[1:-1].reshape((-1, 1))
+
+    sentence_tokens = torch.tensor(sentence_tokens).squeeze(0)
+
+    # Mask indicating positions of attributes within sentence econdings
+    # Each row of (sent==attr) contains position of consecutive tokens
+    mask = (sentence_tokens == keyword_tokens).sum(0)
+
+    example['keyword_mask'] = mask
+
+    return example
