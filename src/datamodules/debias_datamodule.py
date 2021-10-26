@@ -36,6 +36,8 @@ class DebiasDataModule(LightningDataModule):
         self.seat_dataset_map = {i: name for i, name in enumerate(self.seat_data.keys())}
         self.seat_metric = {name: SEAT() for name in self.seat_data.keys()}
 
+        self.dataset_cache = self.data_dir / "dataset"  # TODO: extend model/mode/layer/seed
+
     def prepare_data(self):
         for name, url in self.datafiles.items():
             download_path = download_from_url(url, root=self.data_dir)
@@ -46,21 +48,25 @@ class DebiasDataModule(LightningDataModule):
                 self.datafiles[name] = extracted_path
 
         # The first call will cache the data
-        extract_data(
-            rawdata_path=self.datafiles['plaintext'],
-            male_attr_path=self.datafiles['attributes_male'],
-            female_attr_path=self.datafiles['attributes_female'],
-            stereo_target_path=self.datafiles['targets_stereotypes'],
-            model_name=self.model_name,
-            data_root=self.data_dir
-        )
+        if not self.dataset_cache.exists():
+            log.info(f"Processing and caching the dataset to {self.dataset_cache}.")
+            extract_data(
+                rawdata_path=self.datafiles['plaintext'],
+                male_attr_path=self.datafiles['attributes_male'],
+                female_attr_path=self.datafiles['attributes_female'],
+                stereo_target_path=self.datafiles['targets_stereotypes'],
+                model_name=self.model_name,
+                data_root=self.data_dir
+            )
+        else:
+            log.info(f"Reading cached datset at {self.dataset_cache}")
 
     def setup(self, stage):
-        # Data is cached to disc now
+        # Data is cached to disk now
         data = {
-            "male": load_from_disk(self.data_dir / "dataset" / "male"),
-            "female": load_from_disk(self.data_dir / "dataset" / "female"),
-            "target": load_from_disk(self.data_dir / "dataset" / "stereotype"),
+            "male": load_from_disk(self.dataset_cache / "male"),
+            "female": load_from_disk(self.dataset_cache / "female"),
+            "target": load_from_disk(self.dataset_cache / "stereotype"),
         }
 
         # Targets (stereotypes)
