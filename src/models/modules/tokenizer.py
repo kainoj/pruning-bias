@@ -11,13 +11,19 @@ class Tokenizer():
         self._tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.max_length = max_length
 
-    def __call__(self, sentence: str, padding='max_length'):
+    def __call__(self, sentence: str, padding='max_length', return_tensors=None):
+        """Tokenizer call.
+
+        Use:
+            - return_tensors=None for 🤗datasets
+            - return_tensors='pt' for torch-style dataset
+        """
         return self._tokenizer(
             sentence,
             padding=padding,
             truncation=True,
             max_length=self.max_length,
-            # return_tensors="pt"
+            return_tensors=return_tensors
         )
 
     def decode(self, x):

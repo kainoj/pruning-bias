@@ -61,10 +61,10 @@ class WeatDataset(Dataset):
 
     def get_all_items(self):
         return {
-            'target_x': self.tokenizer(self.target_x),
-            'target_y': self.tokenizer(self.target_y),
-            'attribute_a': self.tokenizer(self.attribute_a),
-            'attribute_b': self.tokenizer(self.attribute_b),
+            'target_x': self.tokenizer(self.target_x, return_tensors='pt'),
+            'target_y': self.tokenizer(self.target_y, return_tensors='pt'),
+            'attribute_a': self.tokenizer(self.attribute_a, return_tensors='pt'),
+            'attribute_b': self.tokenizer(self.attribute_b, return_tensors='pt'),
         }
 
     def __getitem__(self, idx):
