@@ -39,22 +39,22 @@ class DebiasDataModule(LightningDataModule):
         self.dataset_cache = self.data_dir / "dataset"  # TODO: extend model/mode/layer/seed
 
     def prepare_data(self):
+        datafiles = {}
         for name, url in self.datafiles.items():
             download_path = download_from_url(url, root=self.data_dir)
-            self.datafiles[name] = download_path
+            datafiles[name] = download_path
             if download_path.endswith('.gz'):
                 extracted_path = extract_archive(download_path, self.data_dir)[0]
-                # TODO: this fails when preparing data on multi-GPU
-                self.datafiles[name] = extracted_path
+                datafiles[name] = extracted_path
 
         # The first call will cache the data
         if not self.dataset_cache.exists():
             log.info(f"Processing and caching the dataset to {self.dataset_cache}.")
             extract_data(
-                rawdata_path=self.datafiles['plaintext'],
-                male_attr_path=self.datafiles['attributes_male'],
-                female_attr_path=self.datafiles['attributes_female'],
-                stereo_target_path=self.datafiles['targets_stereotypes'],
+                rawdata_path=datafiles['plaintext'],
+                male_attr_path=datafiles['attributes_male'],
+                female_attr_path=datafiles['attributes_female'],
+                stereo_target_path=datafiles['targets_stereotypes'],
                 model_name=self.model_name,
                 data_root=self.data_dir
             )
