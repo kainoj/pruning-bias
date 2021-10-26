@@ -69,9 +69,11 @@ class DebiasDataModule(LightningDataModule):
             "target": load_from_disk(self.dataset_cache / "stereotype"),
         }
 
-        data['male'].set_format(type='torch', columns=['input_ids', 'attention_mask', 'keyword_mask'])
-        data['female'].set_format(type='torch', columns=['input_ids', 'attention_mask', 'keyword_mask'])
-        data['target'].set_format(type='torch', columns=['input_ids', 'attention_mask', 'keyword_mask'])
+        for key in data:
+            data[key].set_format(
+                type='torch',
+                columns=['input_ids', 'attention_mask', 'keyword_mask']
+            )
 
         # Targets (stereotypes)
         self.targets_train = data['target']['train']
