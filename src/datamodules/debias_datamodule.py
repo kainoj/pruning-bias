@@ -79,8 +79,9 @@ class DebiasDataModule(LightningDataModule):
 
         # Attributes
         self.attributes_male_train = data['male']['train']
-        self.attributes_female_train = data['male']['test']
-        self.attributes_male_val = data['female']['train']
+        self.attributes_female_train = data['female']['train']
+
+        self.attributes_male_val = data['male']['test']
         self.attributes_female_val = data['female']['test']
 
         # SEAT Metric data (SEAT 6, 7 and 8)
@@ -105,9 +106,10 @@ class DebiasDataModule(LightningDataModule):
         male_indices = torch.randperm(len(self.attributes_male_train))[:attr_len]
         female_indices = torch.randperm(len(self.attributes_female_train))[:attr_len]
 
+        # If we pass a tensor with indices, 🤗datasets will fail -> .tolist()
         attributes_dataset = ConcatDataset([
-            Subset(self.attributes_male_train, male_indices),
-            Subset(self.attributes_female_train, female_indices)
+            Subset(self.attributes_male_train, male_indices.tolist()),
+            Subset(self.attributes_female_train, female_indices.tolist())
         ])
 
         attributes = DataLoader(
