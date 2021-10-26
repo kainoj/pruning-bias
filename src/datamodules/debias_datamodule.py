@@ -27,16 +27,16 @@ class DebiasDataModule(LightningDataModule):
     data_dir: str
     datafiles: Dict[str, str]
     seat_data: Dict[str, str]
+    seed: int
 
     def __post_init__(self):
         super().__init__()
         self.tokenizer = Tokenizer(self.model_name)
         self.data_dir = Path(self.data_dir)
 
-        self.seat_dataset_map = {i: name for i, name in enumerate(self.seat_data.keys())}
         self.seat_metric = {name: SEAT() for name in self.seat_data.keys()}
 
-        self.dataset_cache = self.data_dir / "dataset"  # TODO: extend model/mode/layer/seed
+        self.dataset_cache = self.data_dir / "dataset" / self.model.name / self.seed
 
     def prepare_data(self):
         datafiles = {}

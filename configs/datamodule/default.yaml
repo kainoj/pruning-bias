@@ -14,3 +14,5 @@ seat_data:
     SEAT6: ${data_dir}/sent-weat6.jsonl
     SEAT7: ${data_dir}/sent-weat7.jsonl
     SEAT8: ${data_dir}/sent-weat8.jsonl
+
+seed: ${seed}
