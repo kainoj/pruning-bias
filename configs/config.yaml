@@ -10,6 +10,9 @@ defaults:
   - experiment: null
   - hydra: default.yaml
 
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
 seed: 42
 
 # path to original working directory
