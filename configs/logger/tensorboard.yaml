@@ -1,7 +1,7 @@
 tensorboard:
   _target_: pytorch_lightning.loggers.tensorboard.TensorBoardLogger
-  save_dir: ${work_dir}/tensorboard
-  name: ${model.model_name}/${model.embedding_layer}-layer/${model.debias_mode}-debias
+  save_dir: ${work_dir}/logs
+  name: ${exp_name}/
   version: null
   log_graph: False
   default_hp_metric: True
