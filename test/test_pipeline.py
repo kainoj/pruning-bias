@@ -1,8 +1,6 @@
 import unittest
 import torch
 
-from torch.utils.data import DataLoader
-from src.dataset.keywords_dataset import SentencesWithKeywordsDataset
 from src.models.modules.pipeline import Pipeline
 from src.models.modules.tokenizer import Tokenizer
 
@@ -10,10 +8,9 @@ from src.models.modules.tokenizer import Tokenizer
 # From project root dir:
 # python -m unittest
 
-class AttributesDatasetTest(unittest.TestCase):
+class TestPipeline(unittest.TestCase):
 
     def setUp(self) -> None:
-
 
         self.model_name = 'distilbert-base-uncased'
         # self.tokenizer = Tokenizer(self.model_name)
@@ -32,13 +29,13 @@ class AttributesDatasetTest(unittest.TestCase):
                 [4, 4, 4]   # batch 1 - token 1
             ]
         ])
-        self.mask = torch.tensor([
-            [1, 0],   # choose only 1st tohen
-            [0, 1]    # choose only 2nd token
-        ])
 
     def test_apply_output_mask(self):
 
+        mask = torch.tensor([
+            [1, 0],
+            [0, 1],
+        ])
         answer = torch.tensor([
             [
                 [1, 1, 1],
@@ -49,7 +46,7 @@ class AttributesDatasetTest(unittest.TestCase):
             ]
         ])
 
-        result = self.pipeline.apply_output_mask(self.outputs, self.mask)
+        result = self.pipeline.apply_output_mask(self.outputs, mask)
         self.assertTrue(torch.allclose(answer, result))
 
     def test_get_word_embeddings(self):
