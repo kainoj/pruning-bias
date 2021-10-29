@@ -53,8 +53,10 @@ class TestPipeline(unittest.TestCase):
             [1, 1],
             [0, 0],   # This must fail
         ])
-        y = self.pipeline.get_word_embeddings(self.outputs, mask)
-        print("ups its all nans", y)
+        self.assertRaises(
+            ValueError,
+            self.pipeline.get_word_embeddings, self.outputs, mask
+        )
 
     def test_get_word_embeddings(self):
 
