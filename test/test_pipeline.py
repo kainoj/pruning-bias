@@ -2,7 +2,6 @@ import unittest
 import torch
 
 from src.models.modules.pipeline import Pipeline
-from src.models.modules.tokenizer import Tokenizer
 
 
 # From project root dir:
@@ -48,6 +47,14 @@ class TestPipeline(unittest.TestCase):
 
         result = self.pipeline.apply_output_mask(self.outputs, mask)
         self.assertTrue(torch.allclose(answer, result))
+
+    def test_get_word_embeddings_failure(self):
+        mask = torch.tensor([
+            [1, 1],
+            [0, 0],   # This must fail
+        ])
+        y = self.pipeline.get_word_embeddings(self.outputs, mask)
+        print("ups its all nans", y)
 
     def test_get_word_embeddings(self):
 
