@@ -11,7 +11,7 @@ Think of _attributes_ as gender-related words (e.g man, woman), and _targets_ as
 ## How to run
 ```bash
 pip install -r requirements.txt
-python run.py +debiaser.model_name='distilbert-base-uncased' +debiaser.embedding_layer='last'
+python run.py model.model_name='distilbert-base-uncased' model.embedding_layer='last'
 ```
 * The first run will download, process, and cache datasets.
 * By default, debiasing will run on a single GPU. For more options, see [configs](configs/). 
