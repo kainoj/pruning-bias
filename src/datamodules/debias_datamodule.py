@@ -36,7 +36,7 @@ class DebiasDataModule(LightningDataModule):
 
         self.seat_metric = {name: SEAT() for name in self.seat_data.keys()}
 
-        self.dataset_cache = self.data_dir / "dataset" / self.model.name / self.seed
+        self.dataset_cache = self.data_dir / "dataset" / self.model_name / str(self.seed)
 
     def prepare_data(self):
         datafiles = {}
