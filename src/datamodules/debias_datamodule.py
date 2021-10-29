@@ -56,7 +56,7 @@ class DebiasDataModule(LightningDataModule):
                 female_attr_path=datafiles['attributes_female'],
                 stereo_target_path=datafiles['targets_stereotypes'],
                 model_name=self.model_name,
-                data_root=self.data_dir
+                data_root=self.dataset_cache
             )
         else:
             log.info(f"Reading cached datset at {self.dataset_cache}")

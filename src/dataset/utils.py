@@ -7,6 +7,8 @@ from datasets.utils.logging import set_verbosity_error
 import regex as re
 import torch
 
+set_verbosity_error()
+
 
 def get_keyword_set(filepath: str) -> set:
     """Reads file with keywords and returns a set containing them all"""
@@ -53,7 +55,7 @@ def extract_data(
 
     np = 64
     # https://huggingface.co/docs/datasets/process.html#save
-    set_verbosity_error()
+
     dataset = load_dataset('text', data_files=rawdata_path, split="train[:]")
     dataset = dataset.map(
         lambda examples: get_keyword(examples, male_attr, female_attr, stereo_trgt, pattern),
@@ -75,9 +77,9 @@ def extract_data(
     female.set_format(type='torch', columns=['input_ids', 'attention_mask', 'keyword_mask'])
     target.set_format(type='torch', columns=['input_ids', 'attention_mask', 'keyword_mask'])
 
-    male.save_to_disk(data_root / "dataset" / "male")
-    female.save_to_disk(data_root / "dataset" / "female")
-    target.save_to_disk(data_root / "dataset" / "stereotype")
+    male.save_to_disk(data_root / "male")
+    female.save_to_disk(data_root / "female")
+    target.save_to_disk(data_root / "stereotype")
 
     return {"male": male, "female": female, "stereotype": target}
 
