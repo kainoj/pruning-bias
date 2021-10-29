@@ -103,6 +103,10 @@ class Pipeline(nn.Module):
         # we need number of non-zero embeddings - for each batch
         number_non_zer_embs = mask.sum(1, keepdim=True)
 
+        if (number_non_zer_embs < 1).sum() > 0:
+            raise ValueError("If provided, each row of the mask must be "
+                             "non-zero. Please refine your data.")
+
         # Sum of sub-tokens for each batch-sentence
         subtoken_sum = x_masked.sum(1)
 
