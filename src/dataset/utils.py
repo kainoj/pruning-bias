@@ -2,12 +2,12 @@ from typing import Dict, List
 from pathlib import Path
 from datasets import load_dataset
 from src.models.modules.tokenizer import Tokenizer
-from datasets.utils.logging import set_verbosity_error
+from datasets.utils import disable_progress_bar
 
 import regex as re
 import torch
 
-set_verbosity_error()
+disable_progress_bar()
 
 
 def get_keyword_set(filepath: str) -> set:
@@ -63,7 +63,7 @@ def extract_data(
         lambda examples: get_keyword(examples, male_attr, female_attr, stereo_trgt, pattern),
         num_proc=np
     )
-    dataset = dataset.q(lambda examples: examples['type'] != 'none', num_proc=np)
+    dataset = dataset.filter(lambda examples: examples['type'] != 'none', num_proc=np)
     dataset = dataset.map(lambda examples: tokenizer(examples['text']), num_proc=np)
     dataset = dataset.map(lambda examples: get_keyword_mask(examples, tokenizer), num_proc=np)
     dataset = dataset.filter(lambda examples: sum(examples['keyword_mask']) > 0, num_proc=np)
