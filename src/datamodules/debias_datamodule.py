@@ -28,6 +28,7 @@ class DebiasDataModule(LightningDataModule):
     datafiles: Dict[str, str]
     seat_data: Dict[str, str]
     seed: int
+    num_proc: int
 
     def __post_init__(self):
         super().__init__()
@@ -56,7 +57,8 @@ class DebiasDataModule(LightningDataModule):
                 female_attr_path=datafiles['attributes_female'],
                 stereo_target_path=datafiles['targets_stereotypes'],
                 model_name=self.model_name,
-                data_root=self.dataset_cache
+                data_root=self.dataset_cache,
+                num_proc=self.num_proc
             )
         else:
             log.info(f"Reading cached datset at {self.dataset_cache}")

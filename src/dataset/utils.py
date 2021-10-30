@@ -29,6 +29,7 @@ def extract_data(
     stereo_target_path: Path,
     model_name: str,
     data_root: Path,
+    num_proc: int,
 ) -> Dict[str, List[str]]:
     """Extracts, pre-processes and caches data.
 
@@ -41,6 +42,7 @@ def extract_data(
         stereo_target_path: textfile with one keyword per line
         model_name: used to instantiate a tokenizer.
         data_root: where to cache the data.
+        num_proc: on how many processes run data pre-processing
     """
     # Get lists of attributes and targets
     male_attr = get_keyword_set(male_attr_path)

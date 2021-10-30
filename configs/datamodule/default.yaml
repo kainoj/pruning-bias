@@ -19,3 +19,4 @@ seat_data:
     SEAT8: ${data_dir}/sent-weat8.jsonl
 
 seed: ${seed}
+num_proc: 32
