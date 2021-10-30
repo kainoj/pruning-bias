@@ -10,7 +10,7 @@ Think of _attributes_ as gender-related words (e.g man, woman), and _targets_ as
 
 ## How to run
 ```bash
-pip install -r requirements.txt
+conda env create -f env.yaml
 python run.py model.model_name='distilbert-base-uncased' model.embedding_layer='last'
 ```
 * The first run will download, process, and cache datasets.
@@ -30,6 +30,13 @@ In particular, non-contextualized embeddings are computed not for every single i
 They [motivate it](https://github.com/kanekomasahiro/context-debias/issues/2#issuecomment-938492138) for "faster computation" (indeed, it's 5 min vs 40 min on a single V100).
 For reproducibility, I follow their implementation.
 
+### Reproducing the debiasing:
+```bash
+python run.py --multirun \
+    model.model_name='distilbert-base-uncased' \
+    model.embedding_layer=first,last,all \
+    model.debias_mode=sentence,token
+```
 
 ## Credits
 * The original debiaing idea:
