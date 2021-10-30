@@ -3,5 +3,5 @@ lr_monitor:
   logging_interval: step
 
 checkpoint_callback:
-  _target_: pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint
+  _target_: src.callbacks.model_checkpoint.ModelCheckpointWithHuggingface
   dirpath: 'checkpoints/'
