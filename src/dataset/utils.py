@@ -61,9 +61,10 @@ def extract_data(
         lambda examples: get_keyword(examples, male_attr, female_attr, stereo_trgt, pattern),
         num_proc=np
     )
-    dataset = dataset.filter(lambda examples: examples['type'] != 'none', num_proc=np)
+    dataset = dataset.q(lambda examples: examples['type'] != 'none', num_proc=np)
     dataset = dataset.map(lambda examples: tokenizer(examples['text']), num_proc=np)
     dataset = dataset.map(lambda examples: get_keyword_mask(examples, tokenizer), num_proc=np)
+    dataset = dataset.filter(lambda examples: sum(examples['keyword_mask']) > 0, num_proc=np)
 
     male = dataset.filter(lambda example: example['type'] == 'male', num_proc=np)
     female = dataset.filter(lambda example: example['type'] == 'female', num_proc=np)
