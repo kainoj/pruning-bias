@@ -1,8 +1,20 @@
-models:
-    - bert-base-uncased
-    - roberta-base
-    - albert-base-v2
-    - distilbert-base-uncased
-    - google/electra-small-discriminator
+# Specify one of the models below:
+#
+# - bert-base-uncased
+# - roberta-base
+# - albert-base-v2
+# - distilbert-base-uncased
+# - google/electra-small-discriminator
+#
+# or provide a path/to/pretrained/model
 
+model_name: bert-base-uncased
+  
 device: cuda:0
+
+data_root: null
+
+seat_data:
+    SEAT6: ./data/sent-weat6.jsonl
+    SEAT7: ./data/sent-weat7.jsonl
+    SEAT8: ./data/sent-weat8.jsonl
