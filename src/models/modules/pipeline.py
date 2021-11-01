@@ -7,6 +7,8 @@ import torch.nn as nn
 
 class Pipeline(nn.Module):
 
+    AVAILABLE_DEBIASIG_MODES = ['sentence', 'token']
+
     def __init__(self, model_name: str, embedding_layer: str, debias_mode: str) -> None:
         """Wrapper for 🤗's pipeline abstraction with custom embedding getter.
 
@@ -24,6 +26,9 @@ class Pipeline(nn.Module):
                 'token': retruns words embeddings only, as indicated by 'keyword_mask'.
         """
         super().__init__()
+
+        if debias_mode not in self.AVAILABLE_DEBIASIG_MODES:
+            raise ValueError(f"Debiasing mode must be 'sentence' or 'token'. Given: {debias_mode}")
 
         self.model_name = model_name
         self.embedding_layer = embedding_layer
