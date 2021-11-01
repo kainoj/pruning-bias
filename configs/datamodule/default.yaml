@@ -20,3 +20,4 @@ seat_data:
 
 seed: ${seed}
 num_proc: 32
+num_workers: 16

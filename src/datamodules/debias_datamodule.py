@@ -28,7 +28,8 @@ class DebiasDataModule(LightningDataModule):
     datafiles: Dict[str, str]
     seat_data: Dict[str, str]
     seed: int
-    num_proc: int
+    num_proc: int      # For dataset preprocessing
+    num_workers: int   # For dataloaders
 
     def __post_init__(self):
         super().__init__()
@@ -119,12 +120,16 @@ class DebiasDataModule(LightningDataModule):
         attributes = DataLoader(
             dataset=attributes_dataset,
             batch_size=self.batch_size,
-            shuffle=True
+            shuffle=True,
+            num_workers=self.num_workers,
+            pin_memory=True,
         )
         targets = DataLoader(
             dataset=self.targets_train,
             batch_size=self.batch_size,
             shuffle=True,
+            num_workers=self.num_workers,
+            pin_memory=True,
         )
 
         return {"targets": targets, "attributes": attributes}
@@ -149,11 +154,15 @@ class DebiasDataModule(LightningDataModule):
             dataset=self.targets_val,
             batch_size=self.batch_size,
             shuffle=False,
+            num_workers=self.num_workers,
+            pin_memory=True,
         )
         attributes = DataLoader(
             dataset=attributes_data,
             batch_size=self.batch_size,
             shuffle=False,
+            num_workers=self.num_workers,
+            pin_memory=True,
         )
 
         return CombinedLoader(
