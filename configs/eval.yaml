@@ -13,6 +13,7 @@ model_name: bert-base-uncased
 device: cuda:0
 
 data_root: null
+output_csv: null
 
 seat_data:
     SEAT6: ./data/sent-weat6.jsonl

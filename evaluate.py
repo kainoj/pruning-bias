@@ -58,22 +58,21 @@ def to_csv(scores_dict, filename):
             writer.writeheader()
         writer.writerow(scores_dict)
 
+    print(f'Saved SEAT scores at {filename}')
+
 
 @hydra.main(config_path="configs", config_name="eval")
 def main(cfg: DictConfig) -> None:
 
-    model_name = cfg.model_name
-    device = cfg.device
-    seat_data = cfg.seat_data
     data_root = cfg.data_root if cfg.data_root else Path(hydra.utils.get_original_cwd())
+    output_csv = cfg.output_csv if cfg.output_csv else Path(data_root) / 'data/seats.csv'
 
-    results = evaluate(model_name, device, seat_data, data_root)
+    results = evaluate(cfg.model_name, cfg.device, cfg.seat_data, data_root)
 
-    if Path(model_name).is_dir():
-        seat_outfile = Path(model_name) / 'seat.csv'
-        to_csv(results, seat_outfile)
+    to_csv(results, output_csv)
 
-        print(f'Saved scores at {seat_outfile}')
+    if Path(cfg.model_name).is_dir():
+        to_csv(results, Path(cfg.model_name) / 'seat.csv')
 
 
 if __name__ == "__main__":
