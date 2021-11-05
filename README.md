@@ -10,7 +10,7 @@ Think of _attributes_ as gender-related words (e.g man, woman), and _targets_ as
 
 ## How to run
 ```bash
-conda env create -f env.yaml
+conda env create -f envs/debias.yaml
 python run.py model.model_name='distilbert-base-uncased' model.embedding_layer='last'
 ```
 * The first run will download, process, and cache datasets.
