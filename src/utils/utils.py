@@ -75,6 +75,7 @@ def print_config(
         "callbacks",
         "logger",
         "seed",
+        "exp_name",
     ),
     resolve: bool = True,
 ) -> None:
