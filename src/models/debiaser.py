@@ -29,6 +29,7 @@ class Debiaser(LightningModule):
     warmup_steps: int
     loss_alpha: float
     loss_beta: float
+    sparse_train_args: None  # Used by child only
 
     def __post_init__(self):
         super().__init__()
