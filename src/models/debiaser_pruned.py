@@ -1,6 +1,7 @@
+from dataclasses import dataclass
 from typing import Any, Dict
 
-from transformers.training_args import TrainingArguments
+from transformers import AdamW, get_linear_schedule_with_warmup
 from nn_pruning.patch_coordinator import (
     SparseTrainingArguments,
     ModelPatchingCoordinator,
@@ -19,29 +20,18 @@ class DebiaserPruned(Debiaser):
         if self.model_name != 'bert-base-uncased':
             raise ValueError("Only bert-base-uncased is available for prunning.")
 
-        sparse_train_args = SparseTrainingArguments(**self.sparse_train_args)
+        self.sparse_args = SparseTrainingArguments(**self.sparse_train_args)
 
         self.model_patcher = ModelPatchingCoordinator(
-            sparse_args=sparse_train_args,
+            sparse_args=self.sparse_args,
             device=self.device,
-            cache_dir='tmp/',
+            cache_dir='tmp/',  # TODO
             model_name_or_path=self.model_name,
-            logit_names='logits',
-            teacher_constructor=None,
+            logit_names='logits',  # TODO
+            teacher_constructor=None,  # TODO
         )
 
         self.model_patcher.patch_model(self.model_debias.model)
-
-        training_args = TrainingArguments(
-            output_dir=None,  # Unused here, but required
-            learning_rate=self.learning_rate,
-            weight_decay=self.weight_decay
-        )
-        self.model_patcher.create_optimizer_groups(
-            self.model_debias.model,
-            args=training_args,  # TODO: check values
-            sparse_args=sparse_train_args
-        )
 
     def forward(self, inputs, return_word_embs=None, embedding_layer=None):
         self.model_patcher.schedule_threshold(
@@ -61,3 +51,31 @@ class DebiaserPruned(Debiaser):
         )
 
         return loss + loss_prune_reg
+
+    def configure_optimizers(self):
+
+        training_args = MockTrainingArgs(
+            learning_rate=self.learning_rate,
+            weight_decay=self.weight_decay
+        )
+        optim_groups = self.model_patcher.create_optimizer_groups(
+            self.model_debias.model,
+            args=training_args,  # TODO: check values
+            sparse_args=self.sparse_args
+        )
+
+        optimizer = AdamW(optim_groups)
+
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=self.warmup_steps,
+            num_training_steps=self.total_train_steps
+        )
+
+        return {"optimizer": optimizer, "lr_scheduler": scheduler}
+
+
+@dataclass
+class MockTrainingArgs:
+    learning_rate: float
+    weight_decay: float
