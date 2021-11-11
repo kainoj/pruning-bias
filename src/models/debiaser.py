@@ -73,6 +73,7 @@ class Debiaser(LightningModule):
         non_contextualized_acc = torch.zeros((2, self.model_debias.dim), device=self.device)
         non_contextualized_cntr = torch.zeros((2, 1), device=self.device)
 
+        mode = self.training
         self.eval()
         with torch.no_grad():
             for batch in tqdm(datamodule.attributes_train_dataloader()):
@@ -89,7 +90,8 @@ class Debiaser(LightningModule):
 
             non_contextualized = non_contextualized_acc / non_contextualized_cntr
             non_contextualized.requires_grad_(False)
-        self.train()
+
+        self.train(mode)  # Restore original mode
 
         log.info(f"Got non-contextualized embeddings of shape {non_contextualized.shape}")
 
@@ -205,6 +207,7 @@ class Debiaser(LightningModule):
             attribute_a = to_device(data['attribute_a'])
             attribute_b = to_device(data['attribute_b'])
 
+            mode = self.training
             self.eval()
             with torch.no_grad():
                 value = seat(
@@ -213,7 +216,7 @@ class Debiaser(LightningModule):
                     self(attribute_a, embedding_layer='CLS'),
                     self(attribute_b, embedding_layer='CLS'),
                 )
-            self.train()
+            self.train(mode)  # Restore training mode
 
             self.log(f"SEAT/{seat_name}", value, sync_dist=True)
 
