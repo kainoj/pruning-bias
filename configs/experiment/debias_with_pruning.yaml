@@ -1,0 +1,21 @@
+# @package _global_
+
+# Run:
+# python run.py experiment=debias_with_prunning
+
+defaults:
+  - /pruning: sparse_trainer_args.yaml
+  - override /trainer: default.yaml
+  - override /model: debiaser.yaml
+  - override /datamodule: default.yaml
+  - override /callbacks: null
+  - override /logger: tensorboard.yaml
+
+model:
+  _target_: src.models.debiaser_pruned.DebiaserPruned
+  model_name: 'bert-base-uncased'
+  sparse_train_args: ${pruning}
+
+datamodule:
+  batch_size: 32
+  num_workers: 0
