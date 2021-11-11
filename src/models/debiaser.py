@@ -73,6 +73,7 @@ class Debiaser(LightningModule):
         non_contextualized_acc = torch.zeros((2, self.model_debias.dim), device=self.device)
         non_contextualized_cntr = torch.zeros((2, 1), device=self.device)
 
+        self.eval()
         with torch.no_grad():
             for batch in tqdm(datamodule.attributes_train_dataloader()):
 
@@ -88,6 +89,7 @@ class Debiaser(LightningModule):
 
             non_contextualized = non_contextualized_acc / non_contextualized_cntr
             non_contextualized.requires_grad_(False)
+        self.train()
 
         log.info(f"Got non-contextualized embeddings of shape {non_contextualized.shape}")
 
