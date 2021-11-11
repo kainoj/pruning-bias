@@ -14,8 +14,8 @@ class DebiaserPruned(Debiaser):
     sparse_train_args: Dict[str, Any]
 
     def __post_init__(self):
-
         super().__post_init__()
+
         if self.model_name != 'bert-base-uncased':
             raise ValueError("Only bert-base-uncased is available for prunning.")
 
@@ -47,9 +47,8 @@ class DebiaserPruned(Debiaser):
         self.model_patcher.schedule_threshold(
             step=self.global_step,
             total_step=self.total_train_steps,
-            training=False,  # TODO: pass a flag
+            training=self.training,
         )
-
         return super().forward(inputs, return_word_embs, embedding_layer)
 
     def training_step(self, batch: Any, batch_idx: int):
