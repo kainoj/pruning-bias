@@ -218,7 +218,8 @@ class Debiaser(LightningModule):
         loss = self.step(batch)
         self.log_loss(loss, 'validation')
 
-    def configure_optimizers(self):
+    @property
+    def total_train_steps(self):
         num_devices = 1
         if self.trainer.gpus and self.trainer.gpus > 0:
             if isinstance(self.trainer.gpus, list):
@@ -230,8 +231,10 @@ class Debiaser(LightningModule):
         num_samples = len(self.train_dataloader()["targets"])
         train_batches = num_samples // num_devices
         total_epochs = self.trainer.max_epochs - self.trainer.min_epochs + 1
-        total_train_steps = (total_epochs * train_batches) // self.trainer.accumulate_grad_batches
 
+        return (total_epochs * train_batches) // self.trainer.accumulate_grad_batches
+
+    def configure_optimizers(self):
         optimizer = AdamW(
             self.model_debias.parameters(),
             weight_decay=self.weight_decay,
@@ -242,7 +245,7 @@ class Debiaser(LightningModule):
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.warmup_steps,
-            num_training_steps=total_train_steps
+            num_training_steps=self.total_train_steps
         )
 
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
