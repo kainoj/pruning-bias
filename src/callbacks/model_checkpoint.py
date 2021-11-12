@@ -12,7 +12,7 @@ class ModelCheckpointWithHuggingface(ModelCheckpoint):
         # Save Lightning checkpoint (everything)
         super().on_save_checkpoint(trainer, pl_module, checkpoint)
 
-        # Save debiased model an tokenizer only (🤗 compatibile)
+        # Save debiased model and tokenizer only (🤗 compatibile)
         # filename = epoch=X-step=X
         filename = self._format_checkpoint_name(
             None, dict(epoch=trainer.current_epoch, step=trainer.global_step)
