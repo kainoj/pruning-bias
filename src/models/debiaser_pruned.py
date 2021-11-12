@@ -45,10 +45,14 @@ class DebiaserPruned(Debiaser):
         loss = super().training_step(batch, batch_idx)
 
         loss_prune_reg, _, _ = self.model_patcher.regularization_loss(self.model_debias.model)
+
         self.log(
             "train/loss/prune/regularize", loss_prune_reg,
             prog_bar=False, on_epoch=True, sync_dist=True
         )
+
+        for stat, val in self.model_patcher.log().items():
+            self.log(f"pruning/{stat}", val, prog_bar=False, on_epoch=False, sync_dist=True)
 
         return loss + loss_prune_reg
 
