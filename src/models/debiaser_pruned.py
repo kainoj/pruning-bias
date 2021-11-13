@@ -13,6 +13,7 @@ from src.models.debiaser import Debiaser
 class DebiaserPruned(Debiaser):
 
     sparse_train_args: Dict[str, Any]
+    freeze_weights: bool
 
     def __post_init__(self):
         super().__post_init__()
@@ -25,13 +26,21 @@ class DebiaserPruned(Debiaser):
         self.model_patcher = ModelPatchingCoordinator(
             sparse_args=self.sparse_args,
             device=self.device,
-            cache_dir='tmp/',  # TODO
+            cache_dir='tmp/',  # Used only for teacher
             model_name_or_path=self.model_name,
             logit_names='logits',  # TODO
             teacher_constructor=None,  # TODO
         )
 
         self.model_patcher.patch_model(self.model_debias.model)
+
+        if self.freeze_weights:
+            self.freeze_non_mask()
+
+    def freeze_non_mask(self):
+        for name, param in self.model_debias.named_parameters():
+            if name.split('.')[-1] != 'mask_scores':
+                param.requires_grad = False
 
     def forward(self, inputs, return_word_embs=None, embedding_layer=None):
         self.model_patcher.schedule_threshold(

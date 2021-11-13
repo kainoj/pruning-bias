@@ -17,6 +17,7 @@ model:
   _target_: src.models.debiaser_pruned.DebiaserPruned
   model_name: 'bert-base-uncased'
   sparse_train_args: ${pruning}
+  freeze_weights: True
 
 datamodule:
   batch_size: 32

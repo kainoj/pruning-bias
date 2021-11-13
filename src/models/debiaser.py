@@ -30,6 +30,7 @@ class Debiaser(LightningModule):
     loss_alpha: float
     loss_beta: float
     sparse_train_args: None  # Used by child only
+    freeze_weights: bool = False
 
     def __post_init__(self):
         super().__init__()
