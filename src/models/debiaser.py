@@ -29,7 +29,9 @@ class Debiaser(LightningModule):
     warmup_steps: int
     loss_alpha: float
     loss_beta: float
-    sparse_train_args: None  # Used by child only
+
+    # Used by child only
+    sparse_train_args: Dict[str, Any] = None
     freeze_weights: bool = False
 
     def __post_init__(self):
