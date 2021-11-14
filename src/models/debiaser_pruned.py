@@ -1,3 +1,4 @@
+import copy
 from dataclasses import dataclass
 from typing import Any, Dict
 
@@ -8,6 +9,9 @@ from nn_pruning.patch_coordinator import (
 )
 
 from src.models.debiaser import Debiaser
+from src.utils.utils import get_logger
+
+log = get_logger(__name__)
 
 
 class DebiaserPruned(Debiaser):
@@ -64,6 +68,15 @@ class DebiaserPruned(Debiaser):
             self.log(f"pruning/{stat}", val, prog_bar=False, on_epoch=False, sync_dist=True)
 
         return loss + loss_prune_reg
+
+    def compile_model(self):
+        """Returns compiled copy of a debiaed model (NOT in place)."""
+        model = copy.deepcopy(self.model_debias.model)
+        removed, heads = self.model_patcher.compile_model(model)
+
+        log.info(f"Compiled model. Removed {removed} / {heads} heads.")
+
+        return model
 
     def configure_optimizers(self):
 

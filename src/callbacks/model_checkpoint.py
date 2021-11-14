@@ -1,5 +1,3 @@
-import copy
-
 from pathlib import Path
 from src.utils.utils import get_logger
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -31,11 +29,6 @@ class ModelCheckpointWithHuggingface(ModelCheckpoint):
         if not self.compile_pruned:
             pl_module.model_debias.model.save_pretrained(path)
         else:
-            # Because model compile is in place
-            model = copy.deepcopy(pl_module.model_debias.model)
-            removed, heads = pl_module.model_patcher.compile_model(model)
-
             # TODO: save spars_args.json, trainin_args.json, ...
+            model = pl_module.compile_model()
             model.save_pretrained(path)
-
-            log.info(f"Compiled model. Removed {removed} / {heads} heads.")
