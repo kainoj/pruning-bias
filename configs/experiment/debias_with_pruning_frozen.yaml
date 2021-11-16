@@ -1,7 +1,12 @@
 # @package _global_
 
 # Run:
-# python run.py experiment=debias_with_pruning_frozen
+# > python run.py experiment=debias_with_pruning_frozen
+# Or to run multiple experiments at once:
+# > python run.py --multirun \
+#     experiment=debias_with_pruning_frozen \
+#     model.embedding_layer=last,all \
+#     model.debias_mode=sentence,token
 
 # In this experiment we freeze weights of Bert and we train the scores only.
 # Technically, it's called "edge popup".
