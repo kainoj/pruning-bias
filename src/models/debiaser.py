@@ -30,6 +30,10 @@ class Debiaser(LightningModule):
     loss_alpha: float
     loss_beta: float
 
+    # Used by child only
+    sparse_train_args: Dict[str, Any] = None
+    freeze_weights: bool = False
+
     def __post_init__(self):
         super().__init__()
         self.save_hyperparameters()
@@ -72,6 +76,8 @@ class Debiaser(LightningModule):
         non_contextualized_acc = torch.zeros((2, self.model_debias.dim), device=self.device)
         non_contextualized_cntr = torch.zeros((2, 1), device=self.device)
 
+        mode = self.training
+        self.eval()
         with torch.no_grad():
             for batch in tqdm(datamodule.attributes_train_dataloader()):
 
@@ -87,6 +93,8 @@ class Debiaser(LightningModule):
 
             non_contextualized = non_contextualized_acc / non_contextualized_cntr
             non_contextualized.requires_grad_(False)
+
+        self.train(mode)  # Restore original mode
 
         log.info(f"Got non-contextualized embeddings of shape {non_contextualized.shape}")
 
@@ -202,6 +210,7 @@ class Debiaser(LightningModule):
             attribute_a = to_device(data['attribute_a'])
             attribute_b = to_device(data['attribute_b'])
 
+            mode = self.training
             self.eval()
             with torch.no_grad():
                 value = seat(
@@ -210,7 +219,7 @@ class Debiaser(LightningModule):
                     self(attribute_a, embedding_layer='CLS'),
                     self(attribute_b, embedding_layer='CLS'),
                 )
-            self.train()
+            self.train(mode)  # Restore training mode
 
             self.log(f"SEAT/{seat_name}", value, sync_dist=True)
 
@@ -218,7 +227,8 @@ class Debiaser(LightningModule):
         loss = self.step(batch)
         self.log_loss(loss, 'validation')
 
-    def configure_optimizers(self):
+    @property
+    def total_train_steps(self):
         num_devices = 1
         if self.trainer.gpus and self.trainer.gpus > 0:
             if isinstance(self.trainer.gpus, list):
@@ -230,8 +240,10 @@ class Debiaser(LightningModule):
         num_samples = len(self.train_dataloader()["targets"])
         train_batches = num_samples // num_devices
         total_epochs = self.trainer.max_epochs - self.trainer.min_epochs + 1
-        total_train_steps = (total_epochs * train_batches) // self.trainer.accumulate_grad_batches
 
+        return (total_epochs * train_batches) // self.trainer.accumulate_grad_batches
+
+    def configure_optimizers(self):
         optimizer = AdamW(
             self.model_debias.parameters(),
             weight_decay=self.weight_decay,
@@ -242,7 +254,7 @@ class Debiaser(LightningModule):
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.warmup_steps,
-            num_training_steps=total_train_steps
+            num_training_steps=self.total_train_steps
         )
 
         return {"optimizer": optimizer, "lr_scheduler": scheduler}

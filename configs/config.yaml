@@ -1,7 +1,8 @@
 # @package _global_
 
 # specify here default training configuration
-defaults:
+defaults: 
+  - _self_
   - trainer: default.yaml
   - model: debiaser.yaml
   - datamodule: default.yaml
