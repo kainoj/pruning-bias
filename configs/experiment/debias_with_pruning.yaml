@@ -3,6 +3,9 @@
 # Run:
 # python run.py experiment=debias_with_pruning
 
+# This is a very basic setup where we do fine-pruned debiasing.
+# It both learns weights and its scores.
+
 defaults:
   - /pruning: sparse_trainer_args.yaml
   - override /trainer: default.yaml
@@ -17,7 +20,6 @@ model:
   _target_: src.models.debiaser_pruned.DebiaserPruned
   model_name: 'bert-base-uncased'
   sparse_train_args: ${pruning}
-  freeze_weights: True
 
 datamodule:
   batch_size: 32
