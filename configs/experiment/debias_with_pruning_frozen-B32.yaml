@@ -1,10 +1,10 @@
 # @package _global_
 
 # Run:
-# > python run.py experiment=debias_with_pruning_frozen
+# > python run.py experiment=debias_with_pruning_frozen-B32
 # Or to run multiple experiments at once:
 # > python run.py --multirun \
-#     experiment=debias_with_pruning_frozen \
+#     experiment=debias_with_pruning_frozen-B32 \
 #     model.embedding_layer=last,all \
 #     model.debias_mode=sentence,token
 
@@ -19,7 +19,7 @@ defaults:
   - override /callbacks: default.yaml
   - override /logger: tensorboard.yaml
 
-exp_name: pruned-${model.model_name}/${model.embedding_layer}-layer/${model.debias_mode}-debias
+exp_name: pruned/B32/${model.model_name}/${model.embedding_layer}-layer/${model.debias_mode}-debias
 
 model:
   _target_: src.models.debiaser_pruned.DebiaserPruned
