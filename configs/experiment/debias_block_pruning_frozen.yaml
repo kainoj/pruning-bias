@@ -4,11 +4,11 @@
 # In this experiment we freeze weights of Bert and we train the scores only.
 
 # Run:
-# > python run.py experiment=debias_with_pruning_frozen
+# > python run.py experiment=debias_block_pruning_frozen
 
 # Or to run multiple experiments at once:
 # CUDA_VISIBLE_DEVICES=0 python run.py --multirun \
-#     experiment=debias_with_pruning_frozen \
+#     experiment=debias_block_pruning_frozen \
 #     model.embedding_layer=last,all \
 #     model.debias_mode=sentence,token \
 #     prune_block_size=32,64,128,256,384,768
