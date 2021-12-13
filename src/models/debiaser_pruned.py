@@ -18,6 +18,7 @@ class DebiaserPruned(Debiaser):
 
     sparse_train_args: Dict[str, Any]
     freeze_weights: bool
+    share_pruning_scores: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -41,10 +42,19 @@ class DebiaserPruned(Debiaser):
         if self.freeze_weights:
             self.freeze_non_mask()
 
+        if self.share_pruning_scores:
+            self._share_pruning_scores()
+
     def freeze_non_mask(self):
         for name, param in self.model_debias.named_parameters():
             if name.split('.')[-1] != 'mask_scores':
                 param.requires_grad = False
+
+    def _share_pruning_scores(self):
+        for layer in self.model_debias.model.encoder.layer:
+            Qms = layer.attention.self.query.mask_module.context_modules[0].mask_scores.data
+            layer.attention.self.key.mask_module.context_modules[0].mask_scores.data = Qms
+            layer.attention.self.value.mask_module.context_modules[0].mask_scores.data = Qms
 
     def forward(self, inputs, return_word_embs=None, embedding_layer=None):
         self.model_patcher.schedule_threshold(
