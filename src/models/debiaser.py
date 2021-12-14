@@ -35,6 +35,7 @@ class Debiaser(LightningModule):
     freeze_weights: bool = False
     share_pruning_scores: bool = False
     prune_values_only: bool = False
+    prune_attention_only: bool = False
 
     def __post_init__(self):
         super().__init__()

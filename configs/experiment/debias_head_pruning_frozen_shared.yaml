@@ -23,11 +23,16 @@ defaults:
 
 
 # Eg: pruned/B64x768/bert-base-uncased/all-layer/token-debias
-exp_name: pruned/B64x768-shared/${model.model_name}/${model.embedding_layer}-layer/${model.debias_mode}-debias
+exp_name: pruned/B64x768-shared/T${pruning.final_threshold}/l1-reg50/${model.model_name}/${model.embedding_layer}-layer/${model.debias_mode}-debias
 
 pruning:
   attention_block_rows: 64
   attention_block_cols: 768
+  initial_threshold: 0
+  final_threshold: 0.01
+  regularization: l1
+  regularization_final_lambda: 50.0
+
 
 model:
   _target_: src.models.debiaser_pruned.DebiaserPruned
@@ -45,5 +50,5 @@ callbacks:
     compile_pruned: True
 
 trainer:
-  max_epochs: 100
+  max_epochs: 20
 

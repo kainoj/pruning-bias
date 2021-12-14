@@ -20,6 +20,7 @@ class DebiaserPruned(Debiaser):
     freeze_weights: bool
     share_pruning_scores: bool = False
     prune_values_only: bool = False  # Whether to prune Values in attention heads
+    prune_attention_only: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -49,8 +50,16 @@ class DebiaserPruned(Debiaser):
         if self.share_pruning_scores:
             self._share_pruning_scores()
 
+        if self.prune_attention_only:
+            self.disable_fc_pruning()
+
         if self.prune_values_only:
             self.update_only_values()
+
+    def disable_fc_pruning(self):
+        for name, param in self.model_debias.named_parameters():
+            if 'mask_scores' in name and 'attention' not in name:
+                param.requires_grad = False
 
     def freeze_non_mask(self):
         for name, param in self.model_debias.named_parameters():
