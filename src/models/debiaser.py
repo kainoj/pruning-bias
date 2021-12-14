@@ -34,6 +34,7 @@ class Debiaser(LightningModule):
     sparse_train_args: Dict[str, Any] = None
     freeze_weights: bool = False
     share_pruning_scores: bool = False
+    prune_values_only: bool = False
 
     def __post_init__(self):
         super().__init__()
