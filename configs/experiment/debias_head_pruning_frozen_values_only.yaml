@@ -29,7 +29,7 @@ pruning:
   attention_block_rows: 64
   attention_block_cols: 768
   initial_threshold: 0
-  # final_threshold: 0.01
+  final_threshold: 0.01
   # regularization: l1
   # regularization_final_lambda: 50.0
 
