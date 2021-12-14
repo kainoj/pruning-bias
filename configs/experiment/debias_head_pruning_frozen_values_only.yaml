@@ -1,7 +1,7 @@
 # @package _global_
 
 # A config for debiased attention head fine-pruning (block size 64x768)
-# K, Q, V pruning scores are shared within a layer.
+# Only values matrix V's are pruned.
 # In this experiment we freeze weights of Bert and we train the scores only.
 
 # Run:
