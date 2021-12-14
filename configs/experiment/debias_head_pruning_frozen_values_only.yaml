@@ -8,8 +8,8 @@
 # > python run.py experiment=debias_head_pruning_frozen_values_only
 
 # Or to run multiple experiments at once:
-# CUDA_VISIBLE_DEVICES=0 python run.py --multirun \
-#     experiment=debias_head_pruning_frozen \
+# CUDA_VISIBLE_DEVICES=3 python run.py --multirun \
+#     experiment=debias_head_pruning_frozen_values_only \
 #     model.embedding_layer=last,all \
 #     model.debias_mode=sentence,token
 
