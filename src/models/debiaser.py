@@ -29,6 +29,8 @@ class Debiaser(LightningModule):
     warmup_steps: int
     loss_alpha: float
     loss_beta: float
+    hf_checkpoint: str = None
+    is_glue: bool = False
 
     # Used by child only
     sparse_train_args: Dict[str, Any] = None

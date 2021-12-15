@@ -1,5 +1,5 @@
 from typing import Dict
-from transformers import AutoModel
+from transformers import AutoModel, AutoModelForSequenceClassification
 from src.utils.hidden_size import HIDDEN_SIZE
 import torch
 import torch.nn as nn
@@ -9,11 +9,18 @@ class Pipeline(nn.Module):
 
     AVAILABLE_DEBIASIG_MODES = ['sentence', 'token']
 
-    def __init__(self, model_name: str, embedding_layer: str, debias_mode: str) -> None:
+    def __init__(
+        self,
+        model_name: str,
+        embedding_layer: str,
+        debias_mode: str,
+        hf_checkpoint: str = None,
+        is_glue: bool = False,
+    ) -> None:
         """Wrapper for 🤗's pipeline abstraction with custom embedding getter.
 
         Args:
-            model_name: e.g.: `distilbert-base-uncased`
+            model_name: e.g.: `bert-base-uncased`
             embedding_layer: from where to get the embeddings?
                 Available: CLS|first|last|all
                 'CLS': sentence representation as embedding of the [CLS] token
@@ -24,6 +31,8 @@ class Pipeline(nn.Module):
             debias_mode: sentence|token.
                 'sentence': retruns embeddings of the whole sentence.
                 'token': retruns words embeddings only, as indicated by 'keyword_mask'.
+            hf_checkpoint: path to 🤗-compatibile checkpoint
+            is_glue: if true, loads model "for sequence classification"
         """
         super().__init__()
 
@@ -33,8 +42,12 @@ class Pipeline(nn.Module):
         self.model_name = model_name
         self.embedding_layer = embedding_layer
         self.return_word_embs = (debias_mode == 'token')
+        self.is_glue = is_glue
 
-        self.model = AutoModel.from_pretrained(model_name)
+        if not self.is_glue:
+            self.model = AutoModel.from_pretrained(model_name)
+        else:
+            self.model = AutoModelForSequenceClassification.from_pretrained(hf_checkpoint)
 
     @property
     def dim(self):
@@ -118,13 +131,26 @@ class Pipeline(nn.Module):
         # Eventually, we get the average of non-zero sub-tokens
         return subtoken_sum / number_non_zer_embs
 
+    def forward_model(self, sentences):
+        if self.is_glue:
+            return self.model.bert(
+                sentences['input_ids'],
+                attention_mask=sentences['attention_mask'],
+                output_hidden_states=True
+            )
+        return self.model(
+            sentences['input_ids'],
+            attention_mask=sentences['attention_mask'],
+            output_hidden_states=True
+        )
+
     def forward(
             self,
             sentences: Dict[str, torch.tensor],
             return_word_embs: bool = None,
             embedding_layer: str = None,
     ) -> torch.tensor:
-        """Feed forward the model.
+        """Feed forward the model anbd extract embeddings.
 
         Args:
             sentences: tokenized sentence
@@ -133,11 +159,7 @@ class Pipeline(nn.Module):
             embedding_layer: if specified, shadows self.embedding_layer.
                 One of: first|last|all|CLS.
         """
-        outputs = self.model(
-            sentences['input_ids'],
-            attention_mask=sentences['attention_mask'],
-            output_hidden_states=True
-        )
+        outputs = self.forward_model(sentences)
 
         # Choose where to get embeddings from (first, last, all layers...)
         embedding_layer = self.embedding_layer if embedding_layer is None else embedding_layer

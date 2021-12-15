@@ -1,0 +1,26 @@
+# @package _global_
+
+# Run:
+# python run.py experiment=glue_then_debias
+
+defaults:
+  - override /trainer: default.yaml
+  - override /model: debiaser.yaml
+  - override /datamodule: default.yaml
+  - override /callbacks: default.yaml
+  - override /logger: tensorboard.yaml
+
+exp_name: glue-then-debs/${model.model_name}/${model.embedding_layer}-layer/${model.debias_mode}-debias
+
+model:
+  _target_: src.models.debiaser.Debiaser
+  model_name: 'bert-base-uncased'
+  hf_checkpoint: /remote/csifs1/disk1/przm/models/vanilla/bert-base-uncased/glue/cola
+  is_glue: True
+
+datamodule:
+  batch_size: 128
+  num_workers: 0
+
+trainer:
+  max_epochs: 3
