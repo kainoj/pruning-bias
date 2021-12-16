@@ -46,12 +46,16 @@ class Debiaser(LightningModule):
         self.model_debias = Pipeline(
             model_name=self.model_name,
             embedding_layer=self.embedding_layer,
-            debias_mode=self.debias_mode
+            debias_mode=self.debias_mode,
+            hf_checkpoint=self.hf_checkpoint,
+            is_glue=self.is_glue
         )
         self.model_original = Pipeline(
             model_name=self.model_name,
             embedding_layer='all',   # See Eq. (3)
             debias_mode='sentence',  # See Eq. (3)
+            hf_checkpoint=self.hf_checkpoint,
+            is_glue=self.is_glue
         )
 
         self.tokenizer = Tokenizer(self.model_name)
