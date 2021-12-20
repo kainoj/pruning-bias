@@ -1,0 +1,31 @@
+# @package _global_
+
+# Run:
+# CUDA_VISIBLE_DEVICES=3 python run.py experiment=sensitive_seat
+
+# Run everything:
+
+# CUDA_VISIBLE_DEVICES=1 python run.py --multirun \
+#     experiment=sensitive_seat \
+#     seed=17,18,19,20,42
+
+defaults:
+  - override /trainer: default.yaml
+  - override /model: debiaser.yaml
+  - override /datamodule: default.yaml
+  - override /callbacks: default.yaml
+  - override /logger: tensorboard.yaml
+
+exp_name: sens-seat/${seed}/${model.model_name}/${model.embedding_layer}-layer/${model.debias_mode}-debias
+
+model:
+  model_name: 'bert-base-uncased'
+  embedding_layer: last
+  debias_mode: sentence
+
+datamodule:
+  batch_size: 128
+  num_workers: 0
+
+trainer:
+  max_epochs: 10
