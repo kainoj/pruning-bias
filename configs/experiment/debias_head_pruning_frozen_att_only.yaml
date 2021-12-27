@@ -1,0 +1,50 @@
+# @package _global_
+
+# A config for debiased attention head fine-pruning (block size 64x768)
+# Only values matrix V's are pruned.
+# In this experiment we freeze weights of Bert and we train the scores only.
+
+# Run:
+# > python run.py experiment=debias_head_pruning_frozen_att_only
+
+# Or to run multiple experiments at once:
+# CUDA_VISIBLE_DEVICES=2 python run.py --multirun \
+#     experiment=debias_head_pruning_frozen_att_only \
+#     model.embedding_layer=last,all \
+#     model.debias_mode=sentence,token
+
+defaults:
+  - /pruning: sparse_trainer_args.yaml
+  - override /trainer: default.yaml
+  - override /model: debiaser.yaml
+  - override /datamodule: default.yaml
+  - override /callbacks: default.yaml
+  - override /logger: tensorboard.yaml
+
+
+exp_name: pruned/B64x768/att-only-shared/${model.model_name}/${model.embedding_layer}-layer/${model.debias_mode}-debias
+
+pruning:
+  attention_block_rows: 64
+  attention_block_cols: 768
+  initial_threshold: 0
+
+model:
+  _target_: src.models.debiaser_pruned.DebiaserPruned
+  model_name: 'bert-base-uncased'
+  sparse_train_args: ${pruning}
+  freeze_weights: True
+  share_pruning_scores: True
+  prune_attention_only: True
+
+datamodule:
+  batch_size: 128
+  num_workers: 0
+
+callbacks:
+  checkpoint_callback:
+    compile_pruned: True
+
+trainer:
+  max_epochs: 100
+
