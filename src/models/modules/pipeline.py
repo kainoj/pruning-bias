@@ -28,6 +28,7 @@ class Pipeline(nn.Module):
                 'first': first layer
                 'last': last layer
                 'all': all layers, stacked vertically
+                'intermediate': layers index 1-4 inclusive
             debias_mode: sentence|token.
                 'sentence': retruns embeddings of the whole sentence.
                 'token': retruns words embeddings only, as indicated by 'keyword_mask'.
@@ -67,7 +68,10 @@ class Pipeline(nn.Module):
         if embedding_layer == 'all':
             return torch.vstack(outputs.hidden_states)
 
-        raise NotImplementedError('embedding_layer must be first|last|all|CLS.')
+        if embedding_layer == 'intermediate':
+            return torch.vstack(outputs.hidden_states[1:5])
+
+        raise NotImplementedError('embedding_layer must be first|last|all|intermediate|CLS.')
 
     def apply_output_mask(
             self, x: torch.tensor, mask: torch.tensor
