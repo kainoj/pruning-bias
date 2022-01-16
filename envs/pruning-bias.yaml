@@ -1,4 +1,4 @@
-name: debias
+name: pruning-bias
 channels:
   - pytorch
   - conda-forge
