@@ -39,6 +39,16 @@ python run.py --multirun \
 ```
 
 ## Credits
+* Block pruning:
+```bibtex
+@article{Lagunas2021BlockPF,
+  title={Block Pruning For Faster Transformers},
+  author={Franccois Lagunas and Ella Charlaix and Victor Sanh and Alexander M. Rush},
+  journal={ArXiv},
+  year={2021},
+  volume={abs/2109.04838}
+}
+```
 * The original debiaing idea:
 ```bibtex
 @inproceedings{kaneko-bollegala-2021-context,
