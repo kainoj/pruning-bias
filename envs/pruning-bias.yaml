@@ -77,9 +77,9 @@ dependencies:
   - ncurses=6.2=he6710b0_1
   - nest-asyncio=1.5.1=pyhd8ed1ab_0
   - nettle=3.7.3=hbbd107a_1
-  - numpy-base=1.21.2=py39h79a1101_0
   - olefile=0.46=pyhd3eb1b0_0
   - openh264=2.1.1=h4ff587b_0
+  - openjpeg=2.4.0=hb52868f_1
   - openssl=1.1.1m=h7f8727e_0
   - packaging=21.0=pyhd8ed1ab_0
   - pandoc=2.14.2=h7f98852_0
@@ -100,7 +100,6 @@ dependencies:
   - python=3.9.5=h12debd9_4
   - python-dateutil=2.8.1=pyhd3eb1b0_0
   - python_abi=3.9=2_cp39
-  - pytorch=1.10.1=py3.9_cuda11.3_cudnn8.2.0_0
   - pytorch-mutex=1.0=cuda
   - pytz=2021.3=pyhd8ed1ab_0
   - pyzmq=20.0.0=py39h2531618_1
@@ -115,7 +114,6 @@ dependencies:
   - torchvision=0.11.2=py39_cu113
   - tornado=6.1=py39h27cfd23_0
   - traitlets=5.0.5=pyhd3eb1b0_0
-  - typing_extensions=3.10.0.2=pyh06a4308_0
   - tzdata=2021a=h52ac0ba_0
   - wcwidth=0.2.5=py_0
   - webencodings=0.5.1=py39h06a4308_1
