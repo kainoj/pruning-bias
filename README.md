@@ -12,6 +12,7 @@ Setup
 ```bash
 conda env create -f envs/pruning-bias.yaml
 conda activate debias
+pip uninstall nn_pruning
 pip install git+https://github.com/[anonymized]/nn_pruning.git@automodel
 ```
 
