@@ -1,4 +1,4 @@
-# Gender Biases and Where to Fing Them
+# Gender Biases and Where to Find Them
 ### _Exploring Gender Bias Using Movement Pruning_
 ---
 
@@ -10,7 +10,7 @@ We freeze weights of a pre-trained BERT and we fine-prune it on a [gender debias
 ## Reproducibility
 Setup
 ```bash
-conda env create -f envs/debias.yaml
+conda env create -f envs/pruning-bias.yaml
 conda activate debias
 pip install git+https://github.com/[anonymized]/nn_pruning.git@automodel
 ```
