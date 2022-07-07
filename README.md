@@ -1,6 +1,7 @@
-# Gender Biases and Where to Find Them
-### _Exploring Gender Bias Using Movement Pruning_
----
+#### _Gender Biases and Where to Find Them:_
+# Exploring Gender Bias Using Movement Pruning ✂
+
+👉 [arxiv paper](https://arxiv.org/abs/2207.02463) 👈
 
 ## What does it do
 We freeze weights of a pre-trained BERT and we fine-prune it on a [gender debiasing loss](https://aclanthology.org/2021.eacl-main.107.pdf). Optimized are only the pruning scores -- they act a gate to the BERT's weights. We utilzie [block movement pruning](https://arxiv.org/abs/2005.07683).
