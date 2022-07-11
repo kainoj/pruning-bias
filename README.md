@@ -1,6 +1,8 @@
 #### _Gender Biases and Where to Find Them:_
 # Exploring Gender Bias Using Movement Pruning ✂
 
+_Accepted to NAACL2022, Workshop on Gender Bias in Natural Language Processing_
+
 👉 [arxiv paper](https://arxiv.org/abs/2207.02463) 👈
 
 ## What does it do
